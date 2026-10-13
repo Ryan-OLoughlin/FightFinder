@@ -1,6 +1,10 @@
 # FightFinder
 
-A Kotlin Android app for discovering martial arts gyms and tracking visits, classes, and reviews.
+A Kotlin Android app for discovering martial arts gyms and tracking training details.
+
+## Data behavior
+
+Gym records are held in memory only and are cleared when the app process restarts. Persistence is not required.
 
 ## Build and test
 

@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">FightFinder</string>
-    <string name="home_title">Find your next training space</string>
-    <string name="home_subtitle">Your martial arts gym finder and training tracker.</string>
+    <string name="gym_list_title">Martial arts gyms</string>
+    <string name="gym_list_empty">No gyms added yet. Add a gym to start your list.</string>
+    <string name="button_add_gym">Add gym</string>
+    <string name="button_view_gym">View</string>
+    <string name="dialog_add_gym_title">Add a gym</string>
+    <string name="gym_name_hint">Gym name</string>
+    <string name="gym_required_fields">Enter a gym name.</string>
+    <string name="gym_details_message">This gym is in your list.</string>
 </resources>
