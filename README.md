@@ -4,4 +4,4 @@ A Kotlin Android app for discovering martial arts gyms and tracking visits, clas
 
 ## Project status
 
-Initial project setup is in progress. The app will use a simple MVC-style structure and local JSON persistence
+Initial project setup is in progress. The app will use a simple MVC style structure and local JSON persistence
