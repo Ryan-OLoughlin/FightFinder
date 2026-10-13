@@ -2,11 +2,11 @@ package org.wit.fightfinder.activities
 
 import android.os.Bundle
 import android.view.View
-import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import org.wit.fightfinder.databinding.DialogGymFormBinding
 import org.wit.fightfinder.R
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
@@ -41,63 +41,80 @@ class MainActivity : AppCompatActivity() {
         Timber.i("FightFinder started")
     }
 
-    private fun showAddGymDialog() {
-        val gymNameInput = EditText(this).apply {
-            hint = getString(R.string.gym_name_hint)
-            maxLines = 1
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle(R.string.dialog_add_gym_title)
-            .setView(gymNameInput)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.button_add_gym) { _, _ ->
-                val name = gymNameInput.text.toString().trim()
-                if (name.isBlank()) {
-                    Toast.makeText(this, R.string.gym_required_fields, Toast.LENGTH_SHORT).show()
-                } else {
-                    gyms.add(Gym(name))
-                    refreshGymList()
-                    Timber.i("Added gym: $name")
-                }
-            }
-            .show()
-    }
+    private fun showAddGymDialog() = showGymFormDialog()
 
     private fun showGymDetails(gym: Gym) {
+        val notProvided = getString(R.string.gym_not_provided)
+        val details = listOf(
+            getString(R.string.gym_detail_location, gym.location.ifBlank { notProvided }),
+            getString(R.string.gym_detail_price, gym.price.ifBlank { notProvided }),
+            getString(R.string.gym_detail_opening_hours, gym.openingHours.ifBlank { notProvided }),
+            getString(R.string.gym_detail_facilities, gym.facilities.ifBlank { notProvided }),
+            getString(R.string.gym_detail_classes, gym.classes.ifBlank { notProvided })
+        ).joinToString("\n\n")
+
         AlertDialog.Builder(this)
             .setTitle(gym.name)
-            .setMessage(R.string.gym_details_message)
+            .setMessage(details)
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 
-    private fun showEditGymDialog(gym: Gym) {
-        val gymNameInput = EditText(this).apply {
-            hint = getString(R.string.gym_name_hint)
-            setText(gym.name)
-            maxLines = 1
-            setSelection(text.length)
-        }
+    private fun showEditGymDialog(gym: Gym) = showGymFormDialog(gym)
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.dialog_edit_gym_title)
-            .setView(gymNameInput)
+    private fun showGymFormDialog(gym: Gym? = null) {
+        val formBinding = DialogGymFormBinding.inflate(layoutInflater)
+        formBinding.inputGymName.setText(gym?.name.orEmpty())
+        formBinding.inputGymLocation.setText(gym?.location.orEmpty())
+        formBinding.inputGymPrice.setText(gym?.price.orEmpty())
+        formBinding.inputGymOpeningHours.setText(gym?.openingHours.orEmpty())
+        formBinding.inputGymFacilities.setText(gym?.facilities.orEmpty())
+        formBinding.inputGymClasses.setText(gym?.classes.orEmpty())
+
+        val isEditing = gym != null
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(if (isEditing) R.string.dialog_edit_gym_title else R.string.dialog_add_gym_title)
+            .setView(formBinding.root)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.button_edit_gym) { _, _ ->
-                val updatedName = gymNameInput.text.toString().trim()
-                if (updatedName.isBlank()) {
+            .setPositiveButton(if (isEditing) R.string.button_edit_gym else R.string.button_add_gym, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = formBinding.inputGymName.text.toString().trim()
+                if (name.isBlank()) {
                     Toast.makeText(this, R.string.gym_required_fields, Toast.LENGTH_SHORT).show()
                 } else {
-                    val gymIndex = gyms.indexOfFirst { it === gym }
-                    if (gymIndex != -1) {
-                        gyms[gymIndex] = gym.copy(name = updatedName)
+                    val updatedGym = Gym(
+                        name = name,
+                        location = formBinding.inputGymLocation.text.toString().trim(),
+                        price = formBinding.inputGymPrice.text.toString().trim(),
+                        openingHours = formBinding.inputGymOpeningHours.text.toString().trim(),
+                        facilities = formBinding.inputGymFacilities.text.toString().trim(),
+                        classes = formBinding.inputGymClasses.text.toString().trim()
+                    )
+
+                    var saved = false
+                    if (gym == null) {
+                        gyms.add(updatedGym)
+                        Timber.i("Added gym: $name")
+                        saved = true
+                    } else {
+                        val gymIndex = gyms.indexOfFirst { it === gym }
+                        if (gymIndex != -1) {
+                            gyms[gymIndex] = updatedGym
+                            Timber.i("Updated gym: $name")
+                            saved = true
+                        }
+                    }
+                    if (saved) {
                         refreshGymList()
-                        Timber.i("Updated gym: $updatedName")
+                        dialog.dismiss()
                     }
                 }
             }
-            .show()
+        }
+        dialog.show()
     }
 
     private fun showDeleteGymDialog(gym: Gym) {

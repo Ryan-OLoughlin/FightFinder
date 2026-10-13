@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="24dp">
+
+        <EditText
+            android:id="@+id/inputGymName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_name_hint"
+            android:inputType="textCapWords"
+            android:maxLines="1" />
+
+        <EditText
+            android:id="@+id/inputGymLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_location_hint"
+            android:inputType="textCapWords" />
+
+        <EditText
+            android:id="@+id/inputGymPrice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_price_hint"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/inputGymOpeningHours"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_opening_hours_hint"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/inputGymFacilities"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_facilities_hint"
+            android:inputType="textCapSentences" />
+
+        <EditText
+            android:id="@+id/inputGymClasses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_classes_hint"
+            android:inputType="textCapSentences" />
+
+    </LinearLayout>
+</ScrollView>

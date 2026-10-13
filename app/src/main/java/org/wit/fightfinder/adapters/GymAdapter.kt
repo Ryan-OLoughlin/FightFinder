@@ -3,6 +3,7 @@ package org.wit.fightfinder.adapters
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.ItemGymBinding
 import org.wit.fightfinder.models.Gym
 
@@ -41,6 +42,9 @@ class GymAdapter(
 
         fun bind(gym: Gym) {
             binding.gymName.text = gym.name
+            binding.gymLocation.text = gym.location.ifBlank {
+                binding.root.context.getString(R.string.gym_not_provided)
+            }
             binding.btnViewGym.setOnClickListener { onViewGym(gym) }
             binding.btnEditGym.setOnClickListener { onEditGym(gym) }
             binding.btnDeleteGym.setOnClickListener { onDeleteGym(gym) }
