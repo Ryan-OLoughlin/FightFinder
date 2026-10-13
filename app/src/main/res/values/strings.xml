@@ -4,7 +4,12 @@
     <string name="gym_list_empty">No gyms added yet. Add a gym to start your list.</string>
     <string name="button_add_gym">Add gym</string>
     <string name="button_view_gym">View</string>
+    <string name="button_edit_gym">Edit</string>
+    <string name="button_delete_gym">Delete</string>
     <string name="dialog_add_gym_title">Add a gym</string>
+    <string name="dialog_edit_gym_title">Edit gym</string>
+    <string name="dialog_delete_gym_title">Delete gym?</string>
+    <string name="dialog_delete_gym_message">This will remove %1$s from your list.</string>
     <string name="gym_name_hint">Gym name</string>
     <string name="gym_required_fields">Enter a gym name.</string>
     <string name="gym_details_message">This gym is in your list.</string>

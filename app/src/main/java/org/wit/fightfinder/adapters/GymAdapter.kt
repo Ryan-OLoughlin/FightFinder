@@ -7,7 +7,9 @@ import org.wit.fightfinder.databinding.ItemGymBinding
 import org.wit.fightfinder.models.Gym
 
 class GymAdapter(
-    private val onViewGym: (Gym) -> Unit
+    private val onViewGym: (Gym) -> Unit,
+    private val onEditGym: (Gym) -> Unit,
+    private val onDeleteGym: (Gym) -> Unit
 ) : RecyclerView.Adapter<GymAdapter.GymViewHolder>() {
 
     private val gyms = mutableListOf<Gym>()
@@ -40,6 +42,8 @@ class GymAdapter(
         fun bind(gym: Gym) {
             binding.gymName.text = gym.name
             binding.btnViewGym.setOnClickListener { onViewGym(gym) }
+            binding.btnEditGym.setOnClickListener { onEditGym(gym) }
+            binding.btnDeleteGym.setOnClickListener { onDeleteGym(gym) }
         }
     }
 }
