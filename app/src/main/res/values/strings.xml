@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">FightFinder</string>
+    <string name="home_title">Find your next training space</string>
+    <string name="home_subtitle">Your martial arts gym finder and training tracker.</string>
+</resources>

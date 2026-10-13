@@ -2,6 +2,13 @@
 
 A Kotlin Android app for discovering martial arts gyms and tracking visits, classes, and reviews.
 
-## Project status
+## Build and test
 
-Initial project setup is in progress. The app will use a simple MVC-style structure and local JSON persistence, following the CA1 project requirements.
+Open this directory in Android Studio, or run the Gradle wrapper from the project root:
+
+```bash
+./gradlew assembleDebug
+./gradlew test
+```
+
+The Android SDK path is detected by Android Studio. When building from a shell, set `ANDROID_HOME` to the SDK installation directory if it is not already configured.
