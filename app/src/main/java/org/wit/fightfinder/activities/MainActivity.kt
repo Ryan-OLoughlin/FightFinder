@@ -25,7 +25,11 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        gymAdapter = GymAdapter(::showGymDetails)
+        gymAdapter = GymAdapter(
+            onViewGym = ::showGymDetails,
+            onEditGym = ::showEditGymDialog,
+            onDeleteGym = ::showDeleteGymDialog
+        )
         binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.gymRecyclerView.adapter = gymAdapter
         binding.btnAddGym.setOnClickListener { showAddGymDialog() }
@@ -65,6 +69,50 @@ class MainActivity : AppCompatActivity() {
             .setTitle(gym.name)
             .setMessage(R.string.gym_details_message)
             .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun showEditGymDialog(gym: Gym) {
+        val gymNameInput = EditText(this).apply {
+            hint = getString(R.string.gym_name_hint)
+            setText(gym.name)
+            maxLines = 1
+            setSelection(text.length)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_edit_gym_title)
+            .setView(gymNameInput)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.button_edit_gym) { _, _ ->
+                val updatedName = gymNameInput.text.toString().trim()
+                if (updatedName.isBlank()) {
+                    Toast.makeText(this, R.string.gym_required_fields, Toast.LENGTH_SHORT).show()
+                } else {
+                    val gymIndex = gyms.indexOfFirst { it === gym }
+                    if (gymIndex != -1) {
+                        gyms[gymIndex] = gym.copy(name = updatedName)
+                        refreshGymList()
+                        Timber.i("Updated gym: $updatedName")
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun showDeleteGymDialog(gym: Gym) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_delete_gym_title)
+            .setMessage(getString(R.string.dialog_delete_gym_message, gym.name))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.button_delete_gym) { _, _ ->
+                val gymIndex = gyms.indexOfFirst { it === gym }
+                if (gymIndex != -1) {
+                    gyms.removeAt(gymIndex)
+                    refreshGymList()
+                    Timber.i("Deleted gym: ${gym.name}")
+                }
+            }
             .show()
     }
 
