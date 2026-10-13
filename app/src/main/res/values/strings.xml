@@ -8,9 +8,19 @@
     <string name="button_delete_gym">Delete</string>
     <string name="dialog_add_gym_title">Add a gym</string>
     <string name="dialog_edit_gym_title">Edit gym</string>
+    <string name="gym_location_hint">Location or address</string>
+    <string name="gym_price_hint">Price</string>
+    <string name="gym_opening_hours_hint">Opening hours</string>
+    <string name="gym_facilities_hint">Facilities</string>
+    <string name="gym_classes_hint">Classes available</string>
+    <string name="gym_not_provided">Not provided</string>
+    <string name="gym_detail_location">Location: %1$s</string>
+    <string name="gym_detail_price">Price: %1$s</string>
+    <string name="gym_detail_opening_hours">Opening hours: %1$s</string>
+    <string name="gym_detail_facilities">Facilities: %1$s</string>
+    <string name="gym_detail_classes">Classes: %1$s</string>
     <string name="dialog_delete_gym_title">Delete gym?</string>
     <string name="dialog_delete_gym_message">This will remove %1$s from your list.</string>
     <string name="gym_name_hint">Gym name</string>
     <string name="gym_required_fields">Enter a gym name.</string>
-    <string name="gym_details_message">This gym is in your list.</string>
 </resources>
