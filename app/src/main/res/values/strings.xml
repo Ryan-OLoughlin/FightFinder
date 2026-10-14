@@ -28,6 +28,16 @@
     <string name="gym_review_required">Write a comment before submitting.</string>
     <string name="gym_review_line">Rating: %1$d/5\n%2$s</string>
     <string name="button_add_review">Add review</string>
+    <string name="gym_attendance_title">Visits and classes</string>
+    <string name="gym_attendance_empty">No visits or classes recorded yet.</string>
+    <string name="gym_attendance_visit">Gym visit</string>
+    <string name="gym_attendance_class">Attended class</string>
+    <string name="gym_attendance_record_action">Record visit or class</string>
+    <string name="gym_attendance_class_hint">Class name</string>
+    <string name="gym_attendance_class_required">Enter the class name.</string>
+    <string name="gym_attendance_date_label">Date: %1$s</string>
+    <string name="gym_attendance_item_visit">Visit - %1$s</string>
+    <string name="gym_attendance_item_class">%1$s - %2$s</string>
     <string name="dialog_delete_gym_title">Delete gym?</string>
     <string name="dialog_delete_gym_message">This will remove %1$s from your list.</string>
     <string name="gym_name_hint">Gym name</string>
