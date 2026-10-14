@@ -5,6 +5,10 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.NumberPicker
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,6 +17,7 @@ import org.wit.fightfinder.R
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
 import org.wit.fightfinder.models.Gym
+import org.wit.fightfinder.models.GymReview
 import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
@@ -58,19 +63,82 @@ class MainActivity : AppCompatActivity() {
 
     private fun showGymDetails(gym: Gym) {
         val notProvided = getString(R.string.gym_not_provided)
-        val details = listOf(
+        val profileDetails = listOf(
             getString(R.string.gym_detail_location, gym.location.ifBlank { notProvided }),
             getString(R.string.gym_detail_price, gym.price.ifBlank { notProvided }),
             getString(R.string.gym_detail_opening_hours, gym.openingHours.ifBlank { notProvided }),
             getString(R.string.gym_detail_facilities, gym.facilities.ifBlank { notProvided }),
             getString(R.string.gym_detail_classes, gym.classes.ifBlank { notProvided })
         ).joinToString("\n\n")
+        val reviewDetails = if (gym.reviews.isEmpty()) {
+            getString(R.string.gym_reviews_empty)
+        } else {
+            gym.reviews.joinToString("\n\n") { review ->
+                getString(R.string.gym_review_line, review.rating, review.comment)
+            }
+        }
+        val details = "$profileDetails\n\n${getString(R.string.gym_reviews_title)}\n\n$reviewDetails"
 
         AlertDialog.Builder(this)
             .setTitle(gym.name)
             .setMessage(details)
+            .setNeutralButton(R.string.button_add_review) { _, _ -> showAddReviewDialog(gym) }
             .setPositiveButton(android.R.string.ok, null)
             .show()
+    }
+
+    private fun showAddReviewDialog(gym: Gym) {
+        val horizontalPadding = (24 * resources.displayMetrics.density).toInt()
+        val topPadding = (8 * resources.displayMetrics.density).toInt()
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(horizontalPadding, topPadding, horizontalPadding, 0)
+        }
+        val ratingLabel = TextView(this).apply {
+            setText(R.string.gym_review_rating)
+        }
+        val ratingPicker = NumberPicker(this).apply {
+            minValue = 1
+            maxValue = 5
+            value = 5
+            wrapSelectorWheel = false
+        }
+        val commentInput = EditText(this).apply {
+            hint = getString(R.string.gym_review_comment_hint)
+            minLines = 2
+            gravity = android.view.Gravity.TOP
+        }
+        form.addView(ratingLabel)
+        form.addView(ratingPicker)
+        form.addView(commentInput)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.button_add_review)
+            .setView(form)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.button_add_review, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val comment = commentInput.text.toString().trim()
+                if (comment.isBlank()) {
+                    Toast.makeText(this, R.string.gym_review_required, Toast.LENGTH_SHORT).show()
+                } else {
+                    val gymIndex = gyms.indexOfFirst { it === gym }
+                    if (gymIndex != -1) {
+                        val updatedGym = gym.copy(
+                            reviews = gym.reviews + GymReview(ratingPicker.value, comment)
+                        )
+                        gyms[gymIndex] = updatedGym
+                        refreshGymList()
+                        dialog.dismiss()
+                        showGymDetails(updatedGym)
+                    }
+                }
+            }
+        }
+        dialog.show()
     }
 
     private fun showEditGymDialog(gym: Gym) = showGymFormDialog(gym)
@@ -104,7 +172,8 @@ class MainActivity : AppCompatActivity() {
                         price = formBinding.inputGymPrice.text.toString().trim(),
                         openingHours = formBinding.inputGymOpeningHours.text.toString().trim(),
                         facilities = formBinding.inputGymFacilities.text.toString().trim(),
-                        classes = formBinding.inputGymClasses.text.toString().trim()
+                        classes = formBinding.inputGymClasses.text.toString().trim(),
+                        reviews = gym?.reviews.orEmpty()
                     )
 
                     var saved = false
