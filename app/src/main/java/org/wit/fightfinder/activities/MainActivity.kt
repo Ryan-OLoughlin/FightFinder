@@ -1,6 +1,8 @@
 package org.wit.fightfinder.activities
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -18,6 +20,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val gyms = mutableListOf<Gym>()
     private lateinit var gymAdapter: GymAdapter
+    private var gymSearchQuery = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +36,16 @@ class MainActivity : AppCompatActivity() {
         binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.gymRecyclerView.adapter = gymAdapter
         binding.btnAddGym.setOnClickListener { showAddGymDialog() }
+        binding.searchGyms.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
+                gymSearchQuery = text?.toString().orEmpty()
+                refreshGymList()
+            }
+
+            override fun afterTextChanged(text: Editable?) = Unit
+        })
         refreshGymList()
 
         if (Timber.treeCount() == 0) {
@@ -134,7 +147,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshGymList() {
-        gymAdapter.setGyms(gyms)
-        binding.emptyState.visibility = if (gyms.isEmpty()) View.VISIBLE else View.GONE
+        val query = gymSearchQuery.trim()
+        val visibleGyms = if (query.isBlank()) {
+            gyms
+        } else {
+            gyms.filter { gym ->
+                gym.name.contains(query, ignoreCase = true) ||
+                    gym.location.contains(query, ignoreCase = true) ||
+                    gym.classes.contains(query, ignoreCase = true) ||
+                    gym.facilities.contains(query, ignoreCase = true)
+            }
+        }
+
+        gymAdapter.setGyms(visibleGyms)
+        if (gyms.isEmpty()) {
+            binding.emptyState.setText(R.string.gym_list_empty)
+            binding.emptyState.visibility = View.VISIBLE
+        } else if (visibleGyms.isEmpty()) {
+            binding.emptyState.setText(R.string.gym_search_no_results)
+            binding.emptyState.visibility = View.VISIBLE
+        } else {
+            binding.emptyState.visibility = View.GONE
+        }
     }
 }

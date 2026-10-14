@@ -2,6 +2,8 @@
     <string name="app_name">FightFinder</string>
     <string name="gym_list_title">Martial arts gyms</string>
     <string name="gym_list_empty">No gyms added yet. Add a gym to start your list.</string>
+    <string name="gym_search_no_results">No gyms match your search.</string>
+    <string name="search_gyms_hint">Search name, location, classes, or facilities</string>
     <string name="button_add_gym">Add gym</string>
     <string name="button_view_gym">View</string>
     <string name="button_edit_gym">Edit</string>

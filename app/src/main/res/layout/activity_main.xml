@@ -44,7 +44,28 @@
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/gymListTitle" />
+        app:layout_constraintTop_toBottomOf="@id/searchGymLayout" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/searchGymLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
+        android:hint="@string/search_gyms_hint"
+        app:endIconMode="clear_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/gymListTitle">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/searchGyms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionDone"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/gymRecyclerView"
@@ -58,7 +79,7 @@
         app:layout_constraintBottom_toTopOf="@id/btnAddGym"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/gymListTitle" />
+        app:layout_constraintTop_toBottomOf="@id/searchGymLayout" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAddGym"
