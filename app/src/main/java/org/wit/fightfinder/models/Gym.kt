@@ -7,5 +7,6 @@ data class Gym(
     val openingHours: String = "",
     val facilities: String = "",
     val classes: String = "",
-    val reviews: List<GymReview> = emptyList()
+    val reviews: List<GymReview> = emptyList(),
+    val attendance: List<GymAttendance> = emptyList()
 )
