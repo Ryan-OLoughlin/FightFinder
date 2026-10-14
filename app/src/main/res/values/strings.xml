@@ -21,6 +21,13 @@
     <string name="gym_detail_opening_hours">Opening hours: %1$s</string>
     <string name="gym_detail_facilities">Facilities: %1$s</string>
     <string name="gym_detail_classes">Classes: %1$s</string>
+    <string name="gym_reviews_title">Reviews</string>
+    <string name="gym_reviews_empty">No reviews yet.</string>
+    <string name="gym_review_rating">Rating (1 to 5)</string>
+    <string name="gym_review_comment_hint">Write a short review</string>
+    <string name="gym_review_required">Write a comment before submitting.</string>
+    <string name="gym_review_line">Rating: %1$d/5\n%2$s</string>
+    <string name="button_add_review">Add review</string>
     <string name="dialog_delete_gym_title">Delete gym?</string>
     <string name="dialog_delete_gym_message">This will remove %1$s from your list.</string>
     <string name="gym_name_hint">Gym name</string>
