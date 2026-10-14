@@ -32,4 +32,8 @@
     <string name="dialog_delete_gym_message">This will remove %1$s from your list.</string>
     <string name="gym_name_hint">Gym name</string>
     <string name="gym_required_fields">Enter a gym name.</string>
+    <string name="menu_delete_all_gyms">Delete all gyms</string>
+    <string name="dialog_delete_all_gyms_title">Delete all gyms?</string>
+    <string name="dialog_delete_all_gyms_message">This will remove all gyms from your list.</string>
+    <string name="dialog_delete_all_gyms_confirm">Delete all</string>
 </resources>
