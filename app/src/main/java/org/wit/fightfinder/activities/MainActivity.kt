@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbarMain)
 
         gymAdapter = GymAdapter(
             onViewGym = ::showGymDetails,
@@ -57,6 +60,26 @@ class MainActivity : AppCompatActivity() {
             Timber.plant(Timber.DebugTree())
         }
         Timber.i("FightFinder started")
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_delete_all_gyms)?.isEnabled = gyms.isNotEmpty()
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_delete_all_gyms -> {
+                showDeleteAllGymsDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun showAddGymDialog() = showGymFormDialog()
@@ -215,6 +238,24 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showDeleteAllGymsDialog() {
+        if (gyms.isEmpty()) return
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_delete_all_gyms_title)
+            .setMessage(R.string.dialog_delete_all_gyms_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.dialog_delete_all_gyms_confirm) { _, _ ->
+                gyms.clear()
+                binding.searchGyms.text?.clear()
+                gymSearchQuery = ""
+                refreshGymList()
+                invalidateOptionsMenu()
+                Timber.i("Deleted all gyms")
+            }
+            .show()
+    }
+
     private fun refreshGymList() {
         val query = gymSearchQuery.trim()
         val visibleGyms = if (query.isBlank()) {
@@ -229,6 +270,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         gymAdapter.setGyms(visibleGyms)
+        invalidateOptionsMenu()
         if (gyms.isEmpty()) {
             binding.emptyState.setText(R.string.gym_list_empty)
             binding.emptyState.visibility = View.VISIBLE
