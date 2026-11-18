@@ -50,6 +50,13 @@
             android:accessibilityLiveRegion="polite" />
 
         <Button
+            android:id="@+id/retryLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/location_retry"
+            android:visibility="gone" />
+
+        <Button
             android:id="@+id/chooseLocation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

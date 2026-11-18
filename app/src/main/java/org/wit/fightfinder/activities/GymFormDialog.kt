@@ -5,7 +5,9 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.location.LocationManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,6 +47,11 @@ class GymFormDialog : DialogFragment() {
         else if (isResumed) startLocation()
     }
 
+    private val locationSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (!hasLocationPermission() || !deviceLocationEnabled()) finishLocation(null)
+        else if (isResumed) startLocation()
+    }
+
     private val pickImage = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             selectedImage = uri.toString()
@@ -58,6 +65,7 @@ class GymFormDialog : DialogFragment() {
         addedFrom = savedInstanceState?.getBundle(ADDED_FROM)?.getCoordinates()
         requestedPermission = savedInstanceState?.getBoolean(REQUESTED_PERMISSION) == true
         locationFinished = savedInstanceState?.getBoolean(LOCATION_FINISHED) == true
+        form.retryLocation.setOnClickListener { retryLocation() }
         form.locationStatus.visibility = if (editing) View.GONE else View.VISIBLE
         childFragmentManager.setFragmentResultListener(GymMapDialog.RESULT, this) { _, result ->
             result.getCoordinates()?.let { showCoordinates(form, it) }
@@ -110,13 +118,30 @@ class GymFormDialog : DialogFragment() {
             startLocation()
         } else if (!requestedPermission) {
             requestedPermission = true
-            locationPermission.launch(arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION))
+            locationPermission.launch(arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION))
         }
     }
 
     private fun hasLocationPermission() =
         requireContext().checkSelfPermission(ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED ||
             requireContext().checkSelfPermission(ACCESS_FINE_LOCATION) == PERMISSION_GRANTED
+
+    private fun deviceLocationEnabled() =
+        requireContext().getSystemService(LocationManager::class.java).isLocationEnabled
+
+    private fun retryLocation() {
+        locationFinished = false
+        updateLocationStatus()
+        when {
+            !hasLocationPermission() && shouldShowRequestPermissionRationale(ACCESS_COARSE_LOCATION) ->
+                locationPermission.launch(arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION))
+            !hasLocationPermission() -> locationSettings.launch(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${requireContext().packageName}".toUri())
+            )
+            !deviceLocationEnabled() -> locationSettings.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            else -> startLocation()
+        }
+    }
 
     private fun startLocation() {
         if (locationJob?.isActive == true || locationFinished) return
@@ -137,10 +162,19 @@ class GymFormDialog : DialogFragment() {
     }
 
     private fun updateLocationStatus() {
-        binding?.locationStatus?.setText(when {
+        val form = binding ?: return
+        form.locationStatus.setText(when {
             !locationFinished -> R.string.location_pending
             addedFrom != null -> R.string.location_captured
+            !hasLocationPermission() -> R.string.location_permission_needed
+            !deviceLocationEnabled() -> R.string.location_disabled
             else -> R.string.location_missing
+        })
+        form.retryLocation.visibility = if (locationFinished && addedFrom == null) View.VISIBLE else View.GONE
+        form.retryLocation.setText(when {
+            !hasLocationPermission() -> R.string.location_allow
+            !deviceLocationEnabled() -> R.string.location_enable
+            else -> R.string.location_retry
         })
         (dialog as? AlertDialog)?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = locationFinished
     }

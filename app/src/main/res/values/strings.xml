@@ -58,7 +58,12 @@
     <string name="selected_gym_pin">Selected gym location</string>
     <string name="osm_attribution">© OpenStreetMap contributors</string>
     <string name="location_pending">Finding your current location…</string>
-    <string name="location_missing">Current location unavailable. Choose a gym pin on the map or enter coordinates.</string>
+    <string name="location_missing">The phone could not get a recent location. Retry or choose a gym pin manually.</string>
+    <string name="location_permission_needed">FightFinder needs location permission to record where you added the gym. You can still choose a pin manually.</string>
+    <string name="location_disabled">Device location is turned off. Turn it on or choose a gym pin manually.</string>
+    <string name="location_allow">Allow location access</string>
+    <string name="location_enable">Open location settings</string>
+    <string name="location_retry">Retry current location</string>
     <string name="location_captured">Current location captured. You can move the gym pin.</string>
     <string name="gym_pin_details">Gym pin: %1$.6f, %2$.6f</string>
     <string name="added_from_details">Added from: %1$.6f, %2$.6f</string>
