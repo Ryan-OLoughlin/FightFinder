@@ -102,6 +102,9 @@ class MainActivity : AppCompatActivity() {
         val notProvided = getString(R.string.gym_not_provided)
         val profileDetails = listOf(
             getString(R.string.gym_detail_location, gym.location.ifBlank { notProvided }),
+            getString(R.string.gym_pin_details, gym.latitude, gym.longitude),
+            gym.addedFrom?.let { getString(R.string.added_from_details, it.latitude, it.longitude) }
+                ?: getString(R.string.added_from_missing),
             getString(R.string.gym_detail_price, gym.price.ifBlank { notProvided }),
             getString(R.string.gym_detail_opening_hours, gym.openingHours.ifBlank { notProvided }),
             getString(R.string.gym_detail_facilities, gym.facilities.ifBlank { notProvided }),
