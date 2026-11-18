@@ -43,6 +43,18 @@
             android:importantForAutofill="no"
             android:inputType="numberDecimal|numberSigned" />
 
+        <TextView
+            android:id="@+id/locationStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite" />
+
+        <Button
+            android:id="@+id/chooseLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/choose_on_map" />
+
         <EditText
             android:id="@+id/inputGymPrice"
             android:layout_width="match_parent"

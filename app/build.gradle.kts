@@ -40,5 +40,6 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.timber)
     implementation(libs.coil)
+    implementation(libs.osmdroid)
     testImplementation(libs.junit)
 }

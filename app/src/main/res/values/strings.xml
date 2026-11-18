@@ -52,4 +52,15 @@
     <string name="gym_invalid_longitude">Enter a longitude from −180 to 180.</string>
     <string name="gym_photo_preview">Gym photo preview</string>
     <string name="gym_choose_photo">Choose photo</string>
+    <string name="choose_on_map">Choose on map</string>
+    <string name="map_instruction">Tap the map to place the gym pin.</string>
+    <string name="map_confirm">Use this location</string>
+    <string name="selected_gym_pin">Selected gym location</string>
+    <string name="osm_attribution">© OpenStreetMap contributors</string>
+    <string name="location_pending">Finding your current location…</string>
+    <string name="location_missing">Current location unavailable. Choose a gym pin on the map or enter coordinates.</string>
+    <string name="location_captured">Current location captured. You can move the gym pin.</string>
+    <string name="gym_pin_details">Gym pin: %1$.6f, %2$.6f</string>
+    <string name="added_from_details">Added from: %1$.6f, %2$.6f</string>
+    <string name="added_from_missing">Added from: unavailable</string>
 </resources>

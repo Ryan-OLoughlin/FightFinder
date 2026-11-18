@@ -1,0 +1,147 @@
+package org.wit.fightfinder.activities
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.ViewModelProvider
+import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
+import org.wit.fightfinder.R
+import org.wit.fightfinder.databinding.DialogGymMapBinding
+import org.wit.fightfinder.models.Coordinates
+import org.wit.fightfinder.models.GymListModel
+import java.io.File
+
+class GymMapDialog : DialogFragment() {
+    private var binding: DialogGymMapBinding? = null
+    private var selected: Coordinates? = null
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setStyle(STYLE_NO_TITLE, R.style.Theme_FightFinder)
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
+        val context = requireContext()
+        Configuration.getInstance().apply {
+            userAgentValue = context.packageName
+            osmdroidBasePath = File(context.cacheDir, "osmdroid")
+            osmdroidTileCache = File(osmdroidBasePath, "tiles")
+        }
+        val ui = DialogGymMapBinding.inflate(inflater, container, false)
+        binding = ui
+        return ui.root
+    }
+
+    override fun onViewCreated(view: View, state: Bundle?) {
+        val ui = requireNotNull(binding)
+        val map = ui.map
+        map.setDestroyMode(false) // Release the map once, in onDestroyView.
+        map.setTileSource(TileSourceFactory.MAPNIK)
+        map.setMultiTouchControls(true)
+        val selectedMarker = Marker(map).apply {
+            title = requireArguments().getString(TITLE).orEmpty().ifBlank { getString(R.string.selected_gym_pin) }
+            icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_selected_gym_pin)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        }
+        fun select(point: GeoPoint) {
+            selected = Coordinates(point.latitude, point.longitude)
+            selectedMarker.position = point
+            if (!map.overlays.contains(selectedMarker)) map.overlays.add(selectedMarker)
+            ui.confirmLocation.isEnabled = true
+            ui.mapInstruction.text = getString(R.string.gym_pin_details, point.latitude, point.longitude)
+            map.invalidate()
+        }
+
+        map.overlays.add(MapEventsOverlay(object : MapEventsReceiver {
+            override fun singleTapConfirmedHelper(point: GeoPoint): Boolean {
+                select(point)
+                return true
+            }
+            override fun longPressHelper(point: GeoPoint) = singleTapConfirmedHelper(point)
+        }))
+        val gyms = ViewModelProvider(requireActivity())[GymListModel::class.java].gyms
+        for (gym in gyms) {
+            val marker = Marker(map).apply {
+                position = GeoPoint(gym.latitude, gym.longitude)
+                title = gym.name
+                snippet = gym.location
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                setOnMarkerClickListener { tapped, _ ->
+                    select(tapped.position)
+                    tapped.showInfoWindow()
+                    true
+                }
+            }
+            map.overlays.add(marker)
+        }
+
+        val start = (state ?: requireArguments()).getCoordinates()
+        ui.confirmLocation.isEnabled = start != null
+        start?.let { select(GeoPoint(it.latitude, it.longitude)) }
+        val center = start ?: gyms.firstOrNull()?.let { Coordinates(it.latitude, it.longitude) }
+        map.controller.setZoom(if (center != null) 16.0 else 7.0)
+        map.controller.setCenter(center?.let { GeoPoint(it.latitude, it.longitude) } ?: GeoPoint(52.246, -7.140))
+        ui.cancelLocation.setOnClickListener { dismiss() }
+        ui.confirmLocation.setOnClickListener {
+            val result = selected ?: return@setOnClickListener
+            parentFragmentManager.setFragmentResult(RESULT, Bundle().apply { putCoordinates(result) })
+            dismiss()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding?.map?.onResume()
+    }
+
+    override fun onPause() {
+        binding?.map?.onPause()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        binding?.map?.onDetach()
+        binding = null
+        super.onDestroyView()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        selected?.let { outState.putCoordinates(it) }
+    }
+
+    companion object {
+        const val RESULT = "gym_map_result"
+        private const val TITLE = "gym_title"
+
+        fun newInstance(point: Coordinates?, title: String) = GymMapDialog().apply {
+            arguments = Bundle().apply {
+                point?.let { putCoordinates(it) }
+                putString(TITLE, title)
+            }
+        }
+    }
+}
+
+internal fun Bundle.putCoordinates(point: Coordinates) {
+    putDouble("latitude", point.latitude)
+    putDouble("longitude", point.longitude)
+}
+
+internal fun Bundle.getCoordinates(): Coordinates? =
+    if (containsKey("latitude") && containsKey("longitude")) {
+        Coordinates(getDouble("latitude"), getDouble("longitude"))
+    } else null
