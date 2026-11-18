@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import java.io.IOException
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -16,7 +18,7 @@ import org.osmdroid.views.overlay.Marker
 import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.DialogGymMapBinding
 import org.wit.fightfinder.models.Coordinates
-import org.wit.fightfinder.models.GymListModel
+import org.wit.fightfinder.models.Gym
 import java.io.File
 
 class GymMapDialog : DialogFragment() {
@@ -36,14 +38,26 @@ class GymMapDialog : DialogFragment() {
             osmdroidTileCache = File(osmdroidBasePath, "tiles")
         }
         val ui = DialogGymMapBinding.inflate(inflater, container, false)
+        ui.map.setDestroyMode(false) // Release the map once, in onDestroyView.
         binding = ui
         return ui.root
     }
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val ui = requireNotNull(binding)
+        ui.cancelLocation.setOnClickListener { dismiss() }
+        ui.confirmLocation.isEnabled = false
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                configureMap(ui, state, requireContext().gymStore.load())
+            } catch (e: IOException) {
+                ui.mapInstruction.setText(R.string.gym_load_failed)
+            }
+        }
+    }
+
+    private fun configureMap(ui: DialogGymMapBinding, state: Bundle?, gyms: List<Gym>) {
         val map = ui.map
-        map.setDestroyMode(false) // Release the map once, in onDestroyView.
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
         val selectedMarker = Marker(map).apply {
@@ -67,7 +81,6 @@ class GymMapDialog : DialogFragment() {
             }
             override fun longPressHelper(point: GeoPoint) = singleTapConfirmedHelper(point)
         }))
-        val gyms = ViewModelProvider(requireActivity())[GymListModel::class.java].gyms
         for (gym in gyms) {
             val marker = Marker(map).apply {
                 position = GeoPoint(gym.latitude, gym.longitude)
@@ -89,7 +102,6 @@ class GymMapDialog : DialogFragment() {
         val center = start ?: gyms.firstOrNull()?.let { Coordinates(it.latitude, it.longitude) }
         map.controller.setZoom(if (center != null) 16.0 else 7.0)
         map.controller.setCenter(center?.let { GeoPoint(it.latitude, it.longitude) } ?: GeoPoint(52.246, -7.140))
-        ui.cancelLocation.setOnClickListener { dismiss() }
         ui.confirmLocation.setOnClickListener {
             val result = selected ?: return@setOnClickListener
             parentFragmentManager.setFragmentResult(RESULT, Bundle().apply { putCoordinates(result) })
