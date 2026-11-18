@@ -28,6 +28,22 @@
             android:inputType="textCapWords" />
 
         <EditText
+            android:id="@+id/inputLatitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_latitude"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal|numberSigned" />
+
+        <EditText
+            android:id="@+id/inputLongitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/gym_longitude"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal|numberSigned" />
+
+        <EditText
             android:id="@+id/inputGymPrice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -54,6 +70,19 @@
             android:layout_height="wrap_content"
             android:hint="@string/gym_classes_hint"
             android:inputType="textCapSentences" />
+
+        <ImageView
+            android:id="@+id/imagePreview"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:contentDescription="@string/gym_photo_preview"
+            android:scaleType="centerInside" />
+
+        <Button
+            android:id="@+id/pickImage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/gym_choose_photo" />
 
     </LinearLayout>
 </ScrollView>

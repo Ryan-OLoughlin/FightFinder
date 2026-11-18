@@ -46,4 +46,10 @@
     <string name="dialog_delete_all_gyms_title">Delete all gyms?</string>
     <string name="dialog_delete_all_gyms_message">This will remove all gyms from your list.</string>
     <string name="dialog_delete_all_gyms_confirm">Delete all</string>
+    <string name="gym_latitude">Latitude</string>
+    <string name="gym_longitude">Longitude</string>
+    <string name="gym_invalid_latitude">Enter a latitude from −90 to 90.</string>
+    <string name="gym_invalid_longitude">Enter a longitude from −180 to 180.</string>
+    <string name="gym_photo_preview">Gym photo preview</string>
+    <string name="gym_choose_photo">Choose photo</string>
 </resources>

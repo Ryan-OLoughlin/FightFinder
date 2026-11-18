@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.ItemGymBinding
 import org.wit.fightfinder.models.Gym
+import org.wit.fightfinder.showGymPhoto
 
 class GymAdapter(
     private val onViewGym: (Gym) -> Unit,
@@ -41,6 +42,7 @@ class GymAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(gym: Gym) {
+            binding.gymPhoto.showGymPhoto(gym.imageUri)
             binding.gymName.text = gym.name
             binding.gymLocation.text = gym.location.ifBlank {
                 binding.root.context.getString(R.string.gym_not_provided)

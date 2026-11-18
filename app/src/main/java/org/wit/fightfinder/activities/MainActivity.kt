@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.app.DatePickerDialog
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.Gravity
 import android.view.View
 import android.view.Menu
 import android.view.MenuItem
@@ -17,7 +16,8 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import org.wit.fightfinder.databinding.DialogGymFormBinding
+import androidx.lifecycle.ViewModelProvider
+import org.wit.fightfinder.models.GymListModel
 import org.wit.fightfinder.R
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
@@ -33,7 +33,8 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val gyms = mutableListOf<Gym>()
+    private val gymList by lazy { ViewModelProvider(this)[GymListModel::class.java] }
+    private val gyms get() = gymList.gyms
     private lateinit var gymAdapter: GymAdapter
     private var gymSearchQuery = ""
 
@@ -46,12 +47,15 @@ class MainActivity : AppCompatActivity() {
 
         gymAdapter = GymAdapter(
             onViewGym = ::showGymDetails,
-            onEditGym = ::showEditGymDialog,
+            onEditGym = { gym -> showGymForm(gym.id) },
             onDeleteGym = ::showDeleteGymDialog
         )
         binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.gymRecyclerView.adapter = gymAdapter
-        binding.btnAddGym.setOnClickListener { showAddGymDialog() }
+        binding.btnAddGym.setOnClickListener { showGymForm(null) }
+        supportFragmentManager.setFragmentResultListener(GymFormDialog.SAVED, this) { _, _ ->
+            refreshGymList()
+        }
         binding.searchGyms.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
@@ -90,7 +94,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAddGymDialog() = showGymFormDialog()
+    private fun showGymForm(gymId: Long?) {
+        GymFormDialog.newInstance(gymId).show(supportFragmentManager, "gym_form")
+    }
 
     private fun showGymDetails(gym: Gym) {
         val notProvided = getString(R.string.gym_not_provided)
@@ -192,7 +198,7 @@ class MainActivity : AppCompatActivity() {
                 if (type == AttendanceType.CLASS && className.isBlank()) {
                     Toast.makeText(this, R.string.gym_attendance_class_required, Toast.LENGTH_SHORT).show()
                 } else {
-                    val gymIndex = gyms.indexOfFirst { it === gym }
+                    val gymIndex = gyms.indexOfFirst { it.id == gym.id }
                     if (gymIndex != -1) {
                         val attendance = GymAttendance(
                             type = type,
@@ -252,7 +258,7 @@ class MainActivity : AppCompatActivity() {
                 if (comment.isBlank()) {
                     Toast.makeText(this, R.string.gym_review_required, Toast.LENGTH_SHORT).show()
                 } else {
-                    val gymIndex = gyms.indexOfFirst { it === gym }
+                    val gymIndex = gyms.indexOfFirst { it.id == gym.id }
                     if (gymIndex != -1) {
                         val updatedGym = gym.copy(
                             reviews = gym.reviews + GymReview(ratingPicker.value, comment)
@@ -268,72 +274,13 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showEditGymDialog(gym: Gym) = showGymFormDialog(gym)
-
-    private fun showGymFormDialog(gym: Gym? = null) {
-        val formBinding = DialogGymFormBinding.inflate(layoutInflater)
-        formBinding.inputGymName.setText(gym?.name.orEmpty())
-        formBinding.inputGymLocation.setText(gym?.location.orEmpty())
-        formBinding.inputGymPrice.setText(gym?.price.orEmpty())
-        formBinding.inputGymOpeningHours.setText(gym?.openingHours.orEmpty())
-        formBinding.inputGymFacilities.setText(gym?.facilities.orEmpty())
-        formBinding.inputGymClasses.setText(gym?.classes.orEmpty())
-
-        val isEditing = gym != null
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(if (isEditing) R.string.dialog_edit_gym_title else R.string.dialog_add_gym_title)
-            .setView(formBinding.root)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(if (isEditing) R.string.button_edit_gym else R.string.button_add_gym, null)
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val name = formBinding.inputGymName.text.toString().trim()
-                if (name.isBlank()) {
-                    Toast.makeText(this, R.string.gym_required_fields, Toast.LENGTH_SHORT).show()
-                } else {
-                    val updatedGym = Gym(
-                        name = name,
-                        location = formBinding.inputGymLocation.text.toString().trim(),
-                        price = formBinding.inputGymPrice.text.toString().trim(),
-                        openingHours = formBinding.inputGymOpeningHours.text.toString().trim(),
-                        facilities = formBinding.inputGymFacilities.text.toString().trim(),
-                        classes = formBinding.inputGymClasses.text.toString().trim(),
-                        reviews = gym?.reviews.orEmpty(),
-                        attendance = gym?.attendance.orEmpty()
-                    )
-
-                    var saved = false
-                    if (gym == null) {
-                        gyms.add(updatedGym)
-                        Timber.i("Added gym: $name")
-                        saved = true
-                    } else {
-                        val gymIndex = gyms.indexOfFirst { it === gym }
-                        if (gymIndex != -1) {
-                            gyms[gymIndex] = updatedGym
-                            Timber.i("Updated gym: $name")
-                            saved = true
-                        }
-                    }
-                    if (saved) {
-                        refreshGymList()
-                        dialog.dismiss()
-                    }
-                }
-            }
-        }
-        dialog.show()
-    }
-
     private fun showDeleteGymDialog(gym: Gym) {
         AlertDialog.Builder(this)
             .setTitle(R.string.dialog_delete_gym_title)
             .setMessage(getString(R.string.dialog_delete_gym_message, gym.name))
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.button_delete_gym) { _, _ ->
-                val gymIndex = gyms.indexOfFirst { it === gym }
+                val gymIndex = gyms.indexOfFirst { it.id == gym.id }
                 if (gymIndex != -1) {
                     gyms.removeAt(gymIndex)
                     refreshGymList()

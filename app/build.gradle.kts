@@ -39,4 +39,6 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.recyclerview)
     implementation(libs.timber)
+    implementation(libs.coil)
+    testImplementation(libs.junit)
 }

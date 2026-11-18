@@ -7,8 +7,12 @@ activity = "1.12.2"
 constraintlayout = "2.2.1"
 recyclerview = "1.4.0"
 timber = "1.5.1"
+coil = "2.7.0"
+junit = "4.13.2"
 
 [libraries]
+junit = { module = "junit:junit", version.ref = "junit" }
+coil = { module = "io.coil-kt:coil", version.ref = "coil" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
