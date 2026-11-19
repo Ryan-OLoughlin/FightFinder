@@ -68,4 +68,7 @@
     <string name="gym_pin_details">Gym pin: %1$.6f, %2$.6f</string>
     <string name="added_from_details">Added from: %1$.6f, %2$.6f</string>
     <string name="added_from_missing">Added from: unavailable</string>
+    <string name="gym_save_failed">Could not save the change. Please try again.</string>
+    <string name="gym_load_failed">Could not read your saved gyms.</string>
+    <string name="gym_retry">Retry</string>
 </resources>

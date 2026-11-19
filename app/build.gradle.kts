@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.coil)
     implementation(libs.osmdroid)
+    implementation("com.google.code.gson:gson:2.13.2")
     implementation(libs.play.services.location)
     testImplementation(libs.junit)
 }

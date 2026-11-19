@@ -14,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -22,13 +21,11 @@ import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.DialogGymFormBinding
 import org.wit.fightfinder.models.Coordinates
 import org.wit.fightfinder.models.Gym
-import org.wit.fightfinder.models.GymListModel
 import org.wit.fightfinder.showGymPhoto
 import java.text.NumberFormat
 import java.text.ParsePosition
 
 class GymFormDialog : DialogFragment() {
-    private val gymList by lazy { ViewModelProvider(requireActivity())[GymListModel::class.java] }
     private val coordinateFormat = NumberFormat.getNumberInstance().apply {
         isGroupingUsed = false
         maximumFractionDigits = 340
@@ -78,7 +75,7 @@ class GymFormDialog : DialogFragment() {
                 .show(childFragmentManager, "gym_map")
         }
         val gymId = arguments?.takeIf { it.containsKey(GYM_ID) }?.getLong(GYM_ID)
-        val gym = gymList.gyms.find { it.id == gymId }
+        val gym = requireContext().gymStore.gyms.value.find { it.id == gymId }
 
         form.inputGymName.setText(gym?.name)
         form.inputGymLocation.setText(gym?.location)
@@ -99,12 +96,7 @@ class GymFormDialog : DialogFragment() {
             .setPositiveButton(if (gymId == null) R.string.button_add_gym else R.string.button_edit_gym, null)
             .create()
         dialog.setOnShowListener {
-            if (gymId != null && gym == null) {
-                // Android can restore the dialog after the in-memory list has been lost.
-                dismiss()
-            } else {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { save(form, gym) }
-            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { save(form, gymId) }
         }
         return dialog
     }
@@ -192,7 +184,7 @@ class GymFormDialog : DialogFragment() {
         super.onStop()
     }
 
-    private fun save(form: DialogGymFormBinding, original: Gym?) {
+    private fun save(form: DialogGymFormBinding, gymId: Long?) {
         val name = form.inputGymName.text.toString().trim()
         if (name.isBlank()) {
             form.inputGymName.error = getString(R.string.gym_required_fields)
@@ -202,19 +194,17 @@ class GymFormDialog : DialogFragment() {
         val latitude = readCoordinate(form.inputLatitude, Gym.LATITUDE_RANGE, R.string.gym_invalid_latitude) ?: return
         val longitude = readCoordinate(form.inputLongitude, Gym.LONGITUDE_RANGE, R.string.gym_invalid_longitude) ?: return
         val gym = Gym(
-            id = original?.id ?: gymList.allocateId(),
+            id = gymId ?: 0,
             name = name,
             latitude = latitude,
             longitude = longitude,
             imageUri = selectedImage,
-            addedFrom = if (original != null) original.addedFrom else addedFrom,
+            addedFrom = addedFrom,
             location = form.inputGymLocation.text.toString().trim(),
             price = form.inputGymPrice.text.toString().trim(),
             openingHours = form.inputGymOpeningHours.text.toString().trim(),
             facilities = form.inputGymFacilities.text.toString().trim(),
-            classes = form.inputGymClasses.text.toString().trim(),
-            reviews = original?.reviews.orEmpty(),
-            attendance = original?.attendance.orEmpty()
+            classes = form.inputGymClasses.text.toString().trim()
         )
 
         selectedImage?.let { image ->
@@ -226,14 +216,17 @@ class GymFormDialog : DialogFragment() {
                 // Some document providers grant temporary read access only.
             }
         }
-        if (original == null) {
-            gymList.gyms.add(gym)
-        } else {
-            val index = gymList.gyms.indexOfFirst { it.id == original.id }
-            if (index >= 0) gymList.gyms[index] = gym
+        val store = requireContext().gymStore
+        saveGymChange(requireContext(), (dialog as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE)) {
+            if (gymId == null) {
+                store.create(gym)
+            } else {
+                store.update(gymId) { current ->
+                    gym.copy(addedFrom = current.addedFrom, reviews = current.reviews, attendance = current.attendance)
+                }
+            }
+            dismissAllowingStateLoss()
         }
-        parentFragmentManager.setFragmentResult(SAVED, Bundle())
-        dismiss()
     }
 
     private fun parseCoordinate(field: EditText, range: ClosedFloatingPointRange<Double>): Double? {
@@ -264,7 +257,6 @@ class GymFormDialog : DialogFragment() {
     }
 
     companion object {
-        const val SAVED = "gym_saved"
         private const val GYM_ID = "gym_id"
         private const val REQUESTED_PERMISSION = "requested_permission"
         private const val LOCATION_FINISHED = "location_finished"

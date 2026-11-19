@@ -16,8 +16,9 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.lifecycle.ViewModelProvider
-import org.wit.fightfinder.models.GymListModel
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import java.io.IOException
 import org.wit.fightfinder.R
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
@@ -33,8 +34,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val gymList by lazy { ViewModelProvider(this)[GymListModel::class.java] }
-    private val gyms get() = gymList.gyms
+    private val gyms get() = gymStore.gyms.value
     private lateinit var gymAdapter: GymAdapter
     private var gymSearchQuery = ""
 
@@ -52,10 +52,6 @@ class MainActivity : AppCompatActivity() {
         )
         binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.gymRecyclerView.adapter = gymAdapter
-        binding.btnAddGym.setOnClickListener { showGymForm(null) }
-        supportFragmentManager.setFragmentResultListener(GymFormDialog.SAVED, this) { _, _ ->
-            refreshGymList()
-        }
         binding.searchGyms.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
@@ -66,12 +62,34 @@ class MainActivity : AppCompatActivity() {
 
             override fun afterTextChanged(text: Editable?) = Unit
         })
-        refreshGymList()
+        loadGyms()
 
         if (Timber.treeCount() == 0) {
             Timber.plant(Timber.DebugTree())
         }
         Timber.i("FightFinder started")
+    }
+
+    private fun loadGyms() {
+        binding.btnAddGym.isEnabled = false
+        binding.searchGyms.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                gymStore.load()
+                binding.btnAddGym.setText(R.string.button_add_gym)
+                binding.btnAddGym.setOnClickListener { showGymForm(null) }
+                binding.btnAddGym.isEnabled = true
+                binding.searchGyms.isEnabled = true
+                gymStore.gyms.collect { refreshGymList() }
+            } catch (e: IOException) {
+                Timber.e(e, "Unable to load gyms")
+                binding.emptyState.setText(R.string.gym_load_failed)
+                binding.emptyState.visibility = View.VISIBLE
+                binding.btnAddGym.setText(R.string.gym_retry)
+                binding.btnAddGym.setOnClickListener { loadGyms() }
+                binding.btnAddGym.isEnabled = true
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -201,16 +219,13 @@ class MainActivity : AppCompatActivity() {
                 if (type == AttendanceType.CLASS && className.isBlank()) {
                     Toast.makeText(this, R.string.gym_attendance_class_required, Toast.LENGTH_SHORT).show()
                 } else {
-                    val gymIndex = gyms.indexOfFirst { it.id == gym.id }
-                    if (gymIndex != -1) {
+                    saveGymChange(this, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
                         val attendance = GymAttendance(
                             type = type,
                             date = formatDate(selectedDate),
                             className = className
                         )
-                        val updatedGym = gym.copy(attendance = gym.attendance + attendance)
-                        gyms[gymIndex] = updatedGym
-                        refreshGymList()
+                        val updatedGym = gymStore.update(gym.id) { it.copy(attendance = it.attendance + attendance) }
                         dialog.dismiss()
                         showGymDetails(updatedGym)
                     }
@@ -261,13 +276,9 @@ class MainActivity : AppCompatActivity() {
                 if (comment.isBlank()) {
                     Toast.makeText(this, R.string.gym_review_required, Toast.LENGTH_SHORT).show()
                 } else {
-                    val gymIndex = gyms.indexOfFirst { it.id == gym.id }
-                    if (gymIndex != -1) {
-                        val updatedGym = gym.copy(
-                            reviews = gym.reviews + GymReview(ratingPicker.value, comment)
-                        )
-                        gyms[gymIndex] = updatedGym
-                        refreshGymList()
+                    val review = GymReview(ratingPicker.value, comment)
+                    saveGymChange(this, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
+                        val updatedGym = gymStore.update(gym.id) { it.copy(reviews = it.reviews + review) }
                         dialog.dismiss()
                         showGymDetails(updatedGym)
                     }
@@ -283,10 +294,8 @@ class MainActivity : AppCompatActivity() {
             .setMessage(getString(R.string.dialog_delete_gym_message, gym.name))
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.button_delete_gym) { _, _ ->
-                val gymIndex = gyms.indexOfFirst { it.id == gym.id }
-                if (gymIndex != -1) {
-                    gyms.removeAt(gymIndex)
-                    refreshGymList()
+                saveGymChange(this) {
+                    gymStore.delete(gym.id)
                     Timber.i("Deleted gym: ${gym.name}")
                 }
             }
@@ -301,12 +310,11 @@ class MainActivity : AppCompatActivity() {
             .setMessage(R.string.dialog_delete_all_gyms_message)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.dialog_delete_all_gyms_confirm) { _, _ ->
-                gyms.clear()
-                binding.searchGyms.text?.clear()
-                gymSearchQuery = ""
-                refreshGymList()
-                invalidateOptionsMenu()
-                Timber.i("Deleted all gyms")
+                saveGymChange(this) {
+                    gymStore.deleteAll()
+                    binding.searchGyms.text?.clear()
+                    Timber.i("Deleted all gyms")
+                }
             }
             .show()
     }
