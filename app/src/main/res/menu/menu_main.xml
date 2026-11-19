@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_all_gyms_map"
+        android:title="@string/gym_map_action"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_delete_all_gyms"
         android:title="@string/menu_delete_all_gyms"
         app:showAsAction="never" />
