@@ -64,7 +64,7 @@
     <string name="location_allow">Allow location access</string>
     <string name="location_enable">Open location settings</string>
     <string name="location_retry">Retry current location</string>
-    <string name="location_captured">Current location captured. You can move the gym pin.</string>
+    <string name="location_captured">Current location captured for Added from.</string>
     <string name="gym_pin_details">Gym pin: %1$.6f, %2$.6f</string>
     <string name="added_from_details">Added from: %1$.6f, %2$.6f</string>
     <string name="added_from_missing">Added from: unavailable</string>
