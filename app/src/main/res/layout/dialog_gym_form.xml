@@ -27,6 +27,12 @@
             android:hint="@string/gym_location_hint"
             android:inputType="textCapWords" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chooseLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/choose_on_map" />
+
         <EditText
             android:id="@+id/inputLatitude"
             android:layout_width="match_parent"
@@ -55,12 +61,6 @@
             android:layout_height="wrap_content"
             android:text="@string/location_retry"
             android:visibility="gone" />
-
-        <Button
-            android:id="@+id/chooseLocation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/choose_on_map" />
 
         <EditText
             android:id="@+id/inputGymPrice"

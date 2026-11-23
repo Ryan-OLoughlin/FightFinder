@@ -64,11 +64,16 @@
     <string name="location_allow">Allow location access</string>
     <string name="location_enable">Open location settings</string>
     <string name="location_retry">Retry current location</string>
-    <string name="location_captured">Current location captured. You can move the gym pin.</string>
+    <string name="location_captured">Current location captured for Added from.</string>
     <string name="gym_pin_details">Gym pin: %1$.6f, %2$.6f</string>
     <string name="added_from_details">Added from: %1$.6f, %2$.6f</string>
     <string name="added_from_missing">Added from: unavailable</string>
     <string name="gym_save_failed">Could not save the change. Please try again.</string>
     <string name="gym_load_failed">Could not read your saved gyms.</string>
     <string name="gym_retry">Retry</string>
+    <string name="gym_map_action">Map</string>
+    <string name="all_gyms_map_title">Gym map</string>
+    <string name="gym_map_select">Tap a gym pin to see its details.</string>
+    <string name="gym_map_empty">Add a gym to see it on the map.</string>
+    <string name="gyms_at_pin">Gyms at this location</string>
 </resources>

@@ -9,7 +9,6 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.IOException
-import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -19,7 +18,6 @@ import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.DialogGymMapBinding
 import org.wit.fightfinder.models.Coordinates
 import org.wit.fightfinder.models.Gym
-import java.io.File
 
 class GymMapDialog : DialogFragment() {
     private var binding: DialogGymMapBinding? = null
@@ -31,12 +29,6 @@ class GymMapDialog : DialogFragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
-        val context = requireContext()
-        Configuration.getInstance().apply {
-            userAgentValue = context.packageName
-            osmdroidBasePath = File(context.cacheDir, "osmdroid")
-            osmdroidTileCache = File(osmdroidBasePath, "tiles")
-        }
         val ui = DialogGymMapBinding.inflate(inflater, container, false)
         ui.map.setDestroyMode(false) // Release the map once, in onDestroyView.
         binding = ui

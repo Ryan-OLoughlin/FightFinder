@@ -2,6 +2,7 @@ package org.wit.fightfinder.activities
 
 import android.os.Bundle
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -104,6 +105,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_all_gyms_map -> {
+                startActivity(Intent(this, GymMapListActivity::class.java))
+                true
+            }
             R.id.action_delete_all_gyms -> {
                 showDeleteAllGymsDialog()
                 true

@@ -145,11 +145,6 @@ class GymFormDialog : DialogFragment() {
     private fun finishLocation(fix: Coordinates?) {
         addedFrom = fix
         locationFinished = true
-        binding?.let { form ->
-            if (fix != null && form.inputLatitude.text.isBlank() && form.inputLongitude.text.isBlank()) {
-                showCoordinates(form, fix)
-            }
-        }
         updateLocationStatus()
     }
 
