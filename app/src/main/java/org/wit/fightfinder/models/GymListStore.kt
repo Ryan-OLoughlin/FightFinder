@@ -17,15 +17,15 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
-class GymListStore(private val file: File) {
+class GymListStore(private val file: File) : GymListDataSource {
     private val gson = GsonBuilder().setStrictness(Strictness.STRICT).setPrettyPrinting().create()
     private val mutex = Mutex()
     private val records = MutableStateFlow(emptyList<Gym>())
-    val gyms = records.asStateFlow()
+    override val gyms = records.asStateFlow()
     private var loaded = false
     private var lastId = 0L
 
-    suspend fun load(): List<Gym> = withStore { records.value }
+    override suspend fun load(): List<Gym> = withStore { records.value }
 
     suspend fun create(draft: Gym): Gym = withStore {
         if (lastId == Long.MAX_VALUE) throw IOException("No gym IDs available")
@@ -45,11 +45,11 @@ class GymListStore(private val file: File) {
         updated
     }
 
-    suspend fun delete(id: Long) = withStore {
+    override suspend fun delete(id: Long) = withStore {
         persist(records.value.filterNot { it.id == id }, lastId)
     }
 
-    suspend fun deleteAll() = withStore { persist(emptyList(), lastId) }
+    override suspend fun deleteAll() = withStore { persist(emptyList(), lastId) }
 
     private suspend fun <T> withStore(action: () -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
