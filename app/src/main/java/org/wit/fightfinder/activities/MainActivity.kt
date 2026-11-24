@@ -19,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import java.io.IOException
 import org.wit.fightfinder.R
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
@@ -27,17 +26,18 @@ import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.models.AttendanceType
 import org.wit.fightfinder.models.GymAttendance
 import org.wit.fightfinder.models.GymReview
+import org.wit.fightfinder.presenters.GymListPresenter
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), GymListPresenter.View {
 
     private lateinit var binding: ActivityMainBinding
-    private val gyms get() = gymStore.gyms.value
+    private val presenter by lazy { GymListPresenter(gymStore, this) }
     private lateinit var gymAdapter: GymAdapter
-    private var gymSearchQuery = ""
+    private var canDeleteAll = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         gymAdapter = GymAdapter(
             onViewGym = ::showGymDetails,
             onEditGym = { gym -> showGymForm(gym.id) },
-            onDeleteGym = ::showDeleteGymDialog
+            onDeleteGym = { gym -> presenter.onDeleteRequested(gym.id) }
         )
         binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.gymRecyclerView.adapter = gymAdapter
@@ -57,8 +57,7 @@ class MainActivity : AppCompatActivity() {
             override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
             override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
-                gymSearchQuery = text?.toString().orEmpty()
-                refreshGymList()
+                presenter.onSearchChanged(text?.toString().orEmpty())
             }
 
             override fun afterTextChanged(text: Editable?) = Unit
@@ -72,25 +71,48 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadGyms() {
+        lifecycleScope.launch { presenter.loadAndObserve() }
+    }
+
+    override fun showLoading() {
         binding.btnAddGym.isEnabled = false
         binding.searchGyms.isEnabled = false
-        lifecycleScope.launch {
-            try {
-                gymStore.load()
-                binding.btnAddGym.setText(R.string.button_add_gym)
-                binding.btnAddGym.setOnClickListener { showGymForm(null) }
-                binding.btnAddGym.isEnabled = true
-                binding.searchGyms.isEnabled = true
-                gymStore.gyms.collect { refreshGymList() }
-            } catch (e: IOException) {
-                Timber.e(e, "Unable to load gyms")
-                binding.emptyState.setText(R.string.gym_load_failed)
-                binding.emptyState.visibility = View.VISIBLE
-                binding.btnAddGym.setText(R.string.gym_retry)
-                binding.btnAddGym.setOnClickListener { loadGyms() }
-                binding.btnAddGym.isEnabled = true
-            }
+        binding.emptyState.visibility = View.GONE
+    }
+
+    override fun showLoadError() {
+        binding.emptyState.setText(R.string.gym_load_failed)
+        binding.emptyState.visibility = View.VISIBLE
+        binding.btnAddGym.setText(R.string.gym_retry)
+        binding.btnAddGym.setOnClickListener { loadGyms() }
+        binding.btnAddGym.isEnabled = true
+    }
+
+    override fun showGyms(gyms: List<Gym>, emptyState: GymListPresenter.EmptyState?, canDeleteAll: Boolean) {
+        binding.btnAddGym.setText(R.string.button_add_gym)
+        binding.btnAddGym.setOnClickListener { showGymForm(null) }
+        binding.btnAddGym.isEnabled = true
+        binding.searchGyms.isEnabled = true
+        gymAdapter.setGyms(gyms)
+        if (this.canDeleteAll != canDeleteAll) {
+            this.canDeleteAll = canDeleteAll
+            invalidateOptionsMenu()
         }
+        val message = when (emptyState) {
+            GymListPresenter.EmptyState.EMPTY_LIST -> R.string.gym_list_empty
+            GymListPresenter.EmptyState.NO_RESULTS -> R.string.gym_search_no_results
+            null -> null
+        }
+        binding.emptyState.visibility = if (message == null) View.GONE else View.VISIBLE
+        message?.let(binding.emptyState::setText)
+    }
+
+    override fun clearSearch() {
+        binding.searchGyms.text?.clear()
+    }
+
+    override fun showDeleteError() {
+        Toast.makeText(this, R.string.gym_save_failed, Toast.LENGTH_LONG).show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -99,7 +121,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.action_delete_all_gyms)?.isEnabled = gyms.isNotEmpty()
+        menu.findItem(R.id.action_delete_all_gyms)?.isEnabled = canDeleteAll
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -110,7 +132,7 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_delete_all_gyms -> {
-                showDeleteAllGymsDialog()
+                presenter.onDeleteAllRequested()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -293,60 +315,25 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showDeleteGymDialog(gym: Gym) {
+    override fun confirmDelete(gym: Gym) {
         AlertDialog.Builder(this)
             .setTitle(R.string.dialog_delete_gym_title)
             .setMessage(getString(R.string.dialog_delete_gym_message, gym.name))
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.button_delete_gym) { _, _ ->
-                saveGymChange(this) {
-                    gymStore.delete(gym.id)
-                    Timber.i("Deleted gym: ${gym.name}")
-                }
+                lifecycleScope.launch { presenter.onDeleteConfirmed(gym.id) }
             }
             .show()
     }
 
-    private fun showDeleteAllGymsDialog() {
-        if (gyms.isEmpty()) return
-
+    override fun confirmDeleteAll() {
         AlertDialog.Builder(this)
             .setTitle(R.string.dialog_delete_all_gyms_title)
             .setMessage(R.string.dialog_delete_all_gyms_message)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.dialog_delete_all_gyms_confirm) { _, _ ->
-                saveGymChange(this) {
-                    gymStore.deleteAll()
-                    binding.searchGyms.text?.clear()
-                    Timber.i("Deleted all gyms")
-                }
+                lifecycleScope.launch { presenter.onDeleteAllConfirmed() }
             }
             .show()
-    }
-
-    private fun refreshGymList() {
-        val query = gymSearchQuery.trim()
-        val visibleGyms = if (query.isBlank()) {
-            gyms
-        } else {
-            gyms.filter { gym ->
-                gym.name.contains(query, ignoreCase = true) ||
-                    gym.location.contains(query, ignoreCase = true) ||
-                    gym.classes.contains(query, ignoreCase = true) ||
-                    gym.facilities.contains(query, ignoreCase = true)
-            }
-        }
-
-        gymAdapter.setGyms(visibleGyms)
-        invalidateOptionsMenu()
-        if (gyms.isEmpty()) {
-            binding.emptyState.setText(R.string.gym_list_empty)
-            binding.emptyState.visibility = View.VISIBLE
-        } else if (visibleGyms.isEmpty()) {
-            binding.emptyState.setText(R.string.gym_search_no_results)
-            binding.emptyState.visibility = View.VISIBLE
-        } else {
-            binding.emptyState.visibility = View.GONE
-        }
     }
 }
