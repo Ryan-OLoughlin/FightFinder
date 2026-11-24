@@ -1,4 +1,4 @@
-package org.wit.fightfinder.presenters
+package org.wit.fightfinder.views.list
 
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.cancelAndJoin
@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.models.GymListDataSource
-import org.wit.fightfinder.presenters.GymListPresenter.EmptyState
+import org.wit.fightfinder.views.list.GymListPresenter.EmptyState
 import java.io.IOException
 
 class GymListPresenterTest {

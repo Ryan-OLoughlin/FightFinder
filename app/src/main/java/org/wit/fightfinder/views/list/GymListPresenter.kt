@@ -1,4 +1,4 @@
-package org.wit.fightfinder.presenters
+package org.wit.fightfinder.views.list
 
 import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.models.GymListDataSource

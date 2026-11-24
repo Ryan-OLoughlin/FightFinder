@@ -1,4 +1,6 @@
-package org.wit.fightfinder.activities
+package org.wit.fightfinder.views.map
+
+import org.wit.fightfinder.activities.gymStore
 
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
@@ -15,11 +17,12 @@ import org.wit.fightfinder.R
 import org.wit.fightfinder.databinding.ActivityGymMapListBinding
 import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.showGymPhoto
-import java.io.IOException
+import org.wit.fightfinder.models.Coordinates
 
-class GymMapListActivity : AppCompatActivity() {
+class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
     private lateinit var binding: ActivityGymMapListBinding
-    private var selectedId: Long? = null
+    private val presenter by lazy { GymMapListPresenter(gymStore, this) }
+    private var hasPins = false
     private var positioned = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,61 +39,42 @@ class GymMapListActivity : AppCompatActivity() {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
         }
-        selectedId = savedInstanceState?.takeIf { it.containsKey("selectedGym") }?.getLong("selectedGym")
+        val selectedId = savedInstanceState?.takeIf { it.containsKey("selectedGym") }?.getLong("selectedGym")
         if (savedInstanceState?.containsKey("zoom") == true) {
             binding.map.controller.setZoom(savedInstanceState.getDouble("zoom"))
             binding.map.controller.setCenter(GeoPoint(savedInstanceState.getDouble("lat"), savedInstanceState.getDouble("lon")))
             positioned = true
         }
-        lifecycleScope.launch {
-            try {
-                gymStore.load()
-                gymStore.gyms.collect { renderGyms(it) }
-            } catch (error: IOException) {
-                showMessage(R.string.gym_load_failed)
-                binding.map.isVisible = false
-                binding.attribution.isVisible = false
-            }
-        }
+        lifecycleScope.launch { presenter.loadAndObserve(selectedId) }
     }
 
-    private fun renderGyms(gyms: List<Gym>) {
+    override fun showPins(locations: Map<Coordinates, List<Gym>>) {
         val map = binding.map
         map.overlays.clear()
-        map.isVisible = gyms.isNotEmpty()
-        binding.attribution.isVisible = gyms.isNotEmpty()
-        if (gyms.isEmpty()) {
+        hasPins = locations.isNotEmpty()
+        map.isVisible = hasPins
+        binding.attribution.isVisible = hasPins
+        if (!hasPins) {
             positioned = false
-            showMessage(R.string.gym_map_empty)
             return
         }
 
-        val locations = gyms.groupBy { GeoPoint(it.latitude, it.longitude) }
         for ((point, gymsAtPin) in locations) {
             val marker = Marker(map).apply {
-                position = point
+                position = GeoPoint(point.latitude, point.longitude)
                 title = gymsAtPin.first().name
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 setOnMarkerClickListener { _, _ ->
-                    if (gymsAtPin.size == 1) {
-                        showGym(gymsAtPin.first())
-                    } else {
-                        AlertDialog.Builder(this@GymMapListActivity)
-                            .setTitle(R.string.gyms_at_pin)
-                            .setItems(gymsAtPin.map { it.name }.toTypedArray()) { _, index -> showGym(gymsAtPin[index]) }
-                            .show()
-                    }
+                    presenter.onPinSelected(gymsAtPin)
                     true
                 }
             }
             map.overlays.add(marker)
         }
-        val selected = gyms.find { it.id == selectedId }
-        if (selected != null) showGym(selected) else showMessage(R.string.gym_map_select)
         map.invalidate()
         if (!positioned) {
             map.doOnLayout {
-                val points = locations.keys.toList()
+                val points = locations.keys.map { GeoPoint(it.latitude, it.longitude) }
                 if (points.size == 1) {
                     map.controller.setZoom(16.0)
                     map.controller.setCenter(points.first())
@@ -103,8 +87,26 @@ class GymMapListActivity : AppCompatActivity() {
         }
     }
 
-    private fun showGym(gym: Gym) {
-        selectedId = gym.id
+    override fun chooseGymAtPin(gyms: List<Gym>) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.gyms_at_pin)
+            .setItems(gyms.map { it.name }.toTypedArray()) { _, index ->
+                presenter.onGymSelected(gyms[index].id)
+            }
+            .show()
+    }
+
+    override fun showLoadError() {
+        showMessage(R.string.gym_load_failed)
+        binding.map.isVisible = false
+        binding.attribution.isVisible = false
+    }
+
+    override fun showSelection(gym: Gym?) {
+        if (gym == null) {
+            showMessage(if (hasPins) R.string.gym_map_select else R.string.gym_map_empty)
+            return
+        }
         binding.gymName.text = gym.name
         binding.summary.isVisible = true
         binding.summary.text = gym.location.ifBlank {
@@ -115,7 +117,6 @@ class GymMapListActivity : AppCompatActivity() {
     }
 
     private fun showMessage(message: Int) {
-        selectedId = null
         binding.gymName.setText(message)
         binding.summary.isVisible = false
         binding.photo.isVisible = false
@@ -128,7 +129,7 @@ class GymMapListActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        selectedId?.let { outState.putLong("selectedGym", it) }
+        presenter.selectedId?.let { outState.putLong("selectedGym", it) }
         if (positioned) {
             outState.putDouble("zoom", binding.map.zoomLevelDouble)
             outState.putDouble("lat", binding.map.mapCenter.latitude)

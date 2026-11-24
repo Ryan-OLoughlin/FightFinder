@@ -14,16 +14,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FightFinder">
-        <activity android:name=".activities.GymMapListActivity" android:exported="false" />
-        <activity
+        <activity android:name=".views.map.GymMapListActivity" android:exported="false" />
+        <activity android:name=".views.list.MainActivity" android:exported="false" />
+        <activity-alias
             android:name=".activities.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:targetActivity=".views.list.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 
 </manifest>

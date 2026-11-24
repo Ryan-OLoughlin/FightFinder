@@ -1,4 +1,6 @@
-package org.wit.fightfinder.activities
+package org.wit.fightfinder.views.picker
+
+import org.wit.fightfinder.activities.gymStore
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -21,7 +23,7 @@ import org.wit.fightfinder.models.Gym
 
 class GymMapDialog : DialogFragment() {
     private var binding: DialogGymMapBinding? = null
-    private var selected: Coordinates? = null
+    private val presenter by lazy { GymMapPickerPresenter(requireContext().gymStore) }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -41,7 +43,7 @@ class GymMapDialog : DialogFragment() {
         ui.confirmLocation.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                configureMap(ui, state, requireContext().gymStore.load())
+                configureMap(ui, state, presenter.savedGyms())
             } catch (e: IOException) {
                 ui.mapInstruction.setText(R.string.gym_load_failed)
             }
@@ -58,7 +60,7 @@ class GymMapDialog : DialogFragment() {
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         }
         fun select(point: GeoPoint) {
-            selected = Coordinates(point.latitude, point.longitude)
+            presenter.select(Coordinates(point.latitude, point.longitude))
             selectedMarker.position = point
             if (!map.overlays.contains(selectedMarker)) map.overlays.add(selectedMarker)
             ui.confirmLocation.isEnabled = true
@@ -91,11 +93,11 @@ class GymMapDialog : DialogFragment() {
         val start = (state ?: requireArguments()).getCoordinates()
         ui.confirmLocation.isEnabled = start != null
         start?.let { select(GeoPoint(it.latitude, it.longitude)) }
-        val center = start ?: gyms.firstOrNull()?.let { Coordinates(it.latitude, it.longitude) }
+        val center = presenter.initialCenter(gyms)
         map.controller.setZoom(if (center != null) 16.0 else 7.0)
         map.controller.setCenter(center?.let { GeoPoint(it.latitude, it.longitude) } ?: GeoPoint(52.246, -7.140))
         ui.confirmLocation.setOnClickListener {
-            val result = selected ?: return@setOnClickListener
+            val result = presenter.selected ?: return@setOnClickListener
             parentFragmentManager.setFragmentResult(RESULT, Bundle().apply { putCoordinates(result) })
             dismiss()
         }
@@ -124,7 +126,7 @@ class GymMapDialog : DialogFragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        selected?.let { outState.putCoordinates(it) }
+        presenter.selected?.let { outState.putCoordinates(it) }
     }
 
     companion object {
