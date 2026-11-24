@@ -1,5 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
+
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
@@ -43,5 +48,9 @@ dependencies {
     implementation(libs.osmdroid)
     implementation("com.google.code.gson:gson:2.13.2")
     implementation(libs.play.services.location)
+    implementation("androidx.core:core-splashscreen:1.2.0")
+    // Firebase Auth 25 requires Kotlin metadata newer than our Android plugin supports.
+    implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
+    implementation("com.google.firebase:firebase-auth")
     testImplementation(libs.junit)
 }
