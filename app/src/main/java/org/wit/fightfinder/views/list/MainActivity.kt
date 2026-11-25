@@ -1,6 +1,8 @@
 package org.wit.fightfinder.views.list
 
+import org.wit.fightfinder.FightFinderApplication
 import org.wit.fightfinder.activities.gymStore
+import org.wit.fightfinder.views.auth.openAuth
 import org.wit.fightfinder.views.details.GymDetailsView
 import org.wit.fightfinder.views.form.GymFormDialog
 import org.wit.fightfinder.views.map.GymMapListActivity
@@ -32,7 +34,12 @@ class MainActivity : AppCompatActivity(), GymListPresenter.View {
     private var canDeleteAll = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        val signedIn = (application as FightFinderApplication).signedInUid != null
+        super.onCreate(savedInstanceState.takeIf { signedIn })
+        if (!signedIn) {
+            openAuth()
+            return
+        }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -119,6 +126,11 @@ class MainActivity : AppCompatActivity(), GymListPresenter.View {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_sign_out -> {
+                (application as FightFinderApplication).signOut()
+                openAuth()
+                true
+            }
             R.id.action_all_gyms_map -> {
                 startActivity(Intent(this, GymMapListActivity::class.java))
                 true

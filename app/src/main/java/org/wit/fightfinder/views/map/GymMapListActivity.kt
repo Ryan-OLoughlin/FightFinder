@@ -1,6 +1,8 @@
 package org.wit.fightfinder.views.map
 
+import org.wit.fightfinder.FightFinderApplication
 import org.wit.fightfinder.activities.gymStore
+import org.wit.fightfinder.views.auth.openAuth
 
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
@@ -27,6 +29,10 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if ((application as FightFinderApplication).signedInUid == null) {
+            openAuth()
+            return
+        }
         binding = ActivityGymMapListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
@@ -129,6 +135,7 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        if (!::binding.isInitialized) return
         presenter.selectedId?.let { outState.putLong("selectedGym", it) }
         if (positioned) {
             outState.putDouble("zoom", binding.map.zoomLevelDouble)
@@ -139,16 +146,16 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
 
     override fun onResume() {
         super.onResume()
-        binding.map.onResume()
+        if (::binding.isInitialized) binding.map.onResume()
     }
 
     override fun onPause() {
-        binding.map.onPause()
+        if (::binding.isInitialized) binding.map.onPause()
         super.onPause()
     }
 
     override fun onDestroy() {
-        binding.map.onDetach()
+        if (::binding.isInitialized) binding.map.onDetach()
         super.onDestroy()
     }
 }
