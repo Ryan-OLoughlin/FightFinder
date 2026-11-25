@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/gym_navigation"
+    app:startDestination="@id/gymList">
+
+    <fragment
+        android:id="@+id/gymList"
+        android:name="org.wit.fightfinder.views.list.GymListFragment"
+        android:label="@string/nav_gyms">
+        <action
+            android:id="@+id/openGymDetails"
+            app:destination="@id/gymDetails"
+            app:enterAnim="@anim/screen_enter"
+            app:exitAnim="@anim/screen_exit"
+            app:popEnterAnim="@anim/screen_pop_enter"
+            app:popExitAnim="@anim/screen_pop_exit" />
+        <action android:id="@+id/openGymForm" app:destination="@id/gymForm" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/gymMap"
+        android:name="org.wit.fightfinder.views.map.GymMapListFragment"
+        android:label="@string/all_gyms_map_title" />
+
+    <fragment
+        android:id="@+id/gymDetails"
+        android:name="org.wit.fightfinder.views.details.GymDetailsView"
+        android:label="@string/gym_details_title">
+        <argument android:name="gym_id" app:argType="long" />
+    </fragment>
+
+    <dialog
+        android:id="@+id/gymForm"
+        android:name="org.wit.fightfinder.views.form.GymFormDialog">
+        <argument android:name="gym_id" android:defaultValue="-1L" app:argType="long" />
+        <action android:id="@+id/openGymPicker" app:destination="@id/gymPicker" />
+    </dialog>
+
+    <dialog
+        android:id="@+id/gymPicker"
+        android:name="org.wit.fightfinder.views.picker.GymMapDialog" />
+</navigation>

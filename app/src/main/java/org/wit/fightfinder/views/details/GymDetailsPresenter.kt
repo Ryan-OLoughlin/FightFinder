@@ -7,7 +7,7 @@ import org.wit.fightfinder.models.GymListStore
 import org.wit.fightfinder.models.GymReview
 
 internal class GymDetailsPresenter(private val store: GymListStore, private val gymId: Long) {
-    fun currentGym(): Gym? = store.gyms.value.find { it.id == gymId }
+    suspend fun currentGym(): Gym? = store.load().find { it.id == gymId }
 
     suspend fun addReview(rating: Int, input: String): Gym? {
         val comment = input.trim()

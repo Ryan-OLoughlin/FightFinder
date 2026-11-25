@@ -1,57 +1,44 @@
 package org.wit.fightfinder.views.map
 
-import org.wit.fightfinder.FightFinderApplication
 import org.wit.fightfinder.activities.gymStore
-import org.wit.fightfinder.views.auth.openAuth
 
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import android.view.View
+import androidx.fragment.app.Fragment
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
 import org.wit.fightfinder.R
-import org.wit.fightfinder.databinding.ActivityGymMapListBinding
+import org.wit.fightfinder.databinding.FragmentGymMapListBinding
 import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.showGymPhoto
 import org.wit.fightfinder.models.Coordinates
 
-class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
-    private lateinit var binding: ActivityGymMapListBinding
-    private val presenter by lazy { GymMapListPresenter(gymStore, this) }
+class GymMapListFragment : Fragment(R.layout.fragment_gym_map_list), GymMapListPresenter.View {
+    private var viewBinding: FragmentGymMapListBinding? = null
+    private val binding get() = checkNotNull(viewBinding)
+    private var mapState: Bundle? = null
+    private val presenter by lazy { GymMapListPresenter(requireContext().gymStore, this) }
     private var hasPins = false
     private var positioned = false
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        if ((application as FightFinderApplication).signedInUid == null) {
-            openAuth()
-            return
-        }
-        binding = ActivityGymMapListBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.apply {
-            setTitle(R.string.all_gyms_map_title)
-            setDisplayHomeAsUpEnabled(true)
-        }
-        binding.map.apply {
-            setDestroyMode(false)
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-        }
-        val selectedId = savedInstanceState?.takeIf { it.containsKey("selectedGym") }?.getLong("selectedGym")
-        if (savedInstanceState?.containsKey("zoom") == true) {
-            binding.map.controller.setZoom(savedInstanceState.getDouble("zoom"))
-            binding.map.controller.setCenter(GeoPoint(savedInstanceState.getDouble("lat"), savedInstanceState.getDouble("lon")))
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        viewBinding = FragmentGymMapListBinding.bind(view)
+        positioned = false
+        binding.map.configureGymMap()
+        val state = savedInstanceState ?: mapState
+        val selectedId = state?.takeIf { it.containsKey("selectedGym") }?.getLong("selectedGym")
+        if (state?.containsKey("zoom") == true) {
+            binding.map.controller.setZoom(state.getDouble("zoom"))
+            binding.map.controller.setCenter(GeoPoint(state.getDouble("lat"), state.getDouble("lon")))
             positioned = true
         }
-        lifecycleScope.launch { presenter.loadAndObserve(selectedId) }
+        viewLifecycleOwner.lifecycleScope.launch { presenter.loadAndObserve(selectedId) }
     }
 
     override fun showPins(locations: Map<Coordinates, List<Gym>>) {
@@ -69,6 +56,7 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
             val marker = Marker(map).apply {
                 position = GeoPoint(point.latitude, point.longitude)
                 title = gymsAtPin.first().name
+                styleSavedGymPin(map)
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 setOnMarkerClickListener { _, _ ->
                     presenter.onPinSelected(gymsAtPin)
@@ -94,7 +82,7 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
     }
 
     override fun chooseGymAtPin(gyms: List<Gym>) {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(requireContext())
             .setTitle(R.string.gyms_at_pin)
             .setItems(gyms.map { it.name }.toTypedArray()) { _, index ->
                 presenter.onGymSelected(gyms[index].id)
@@ -128,34 +116,36 @@ class GymMapListActivity : AppCompatActivity(), GymMapListPresenter.View {
         binding.photo.isVisible = false
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        finish()
-        return true
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        if (!::binding.isInitialized) return
-        presenter.selectedId?.let { outState.putLong("selectedGym", it) }
+        outState.putAll(viewBinding?.let { captureMapState(it) } ?: mapState ?: return)
+    }
+
+    private fun captureMapState(ui: FragmentGymMapListBinding) = Bundle().apply {
+        presenter.selectedId?.let { putLong("selectedGym", it) }
         if (positioned) {
-            outState.putDouble("zoom", binding.map.zoomLevelDouble)
-            outState.putDouble("lat", binding.map.mapCenter.latitude)
-            outState.putDouble("lon", binding.map.mapCenter.longitude)
+            putDouble("zoom", ui.map.zoomLevelDouble)
+            putDouble("lat", ui.map.mapCenter.latitude)
+            putDouble("lon", ui.map.mapCenter.longitude)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (::binding.isInitialized) binding.map.onResume()
+        viewBinding?.map?.onResume()
     }
 
     override fun onPause() {
-        if (::binding.isInitialized) binding.map.onPause()
+        viewBinding?.map?.onPause()
         super.onPause()
     }
 
-    override fun onDestroy() {
-        if (::binding.isInitialized) binding.map.onDetach()
-        super.onDestroy()
+    override fun onDestroyView() {
+        viewBinding?.let {
+            mapState = captureMapState(it)
+            it.map.onDetach()
+        }
+        viewBinding = null
+        super.onDestroyView()
     }
 }

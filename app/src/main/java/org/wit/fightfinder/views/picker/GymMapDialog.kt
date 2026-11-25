@@ -12,7 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.IOException
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.wit.fightfinder.views.map.configureGymMap
+import org.wit.fightfinder.views.map.styleSavedGymPin
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
@@ -32,7 +33,7 @@ class GymMapDialog : DialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
         val ui = DialogGymMapBinding.inflate(inflater, container, false)
-        ui.map.setDestroyMode(false) // Release the map once, in onDestroyView.
+        ui.map.configureGymMap()
         binding = ui
         return ui.root
     }
@@ -52,8 +53,6 @@ class GymMapDialog : DialogFragment() {
 
     private fun configureMap(ui: DialogGymMapBinding, state: Bundle?, gyms: List<Gym>) {
         val map = ui.map
-        map.setTileSource(TileSourceFactory.MAPNIK)
-        map.setMultiTouchControls(true)
         val selectedMarker = Marker(map).apply {
             title = requireArguments().getString(TITLE).orEmpty().ifBlank { getString(R.string.selected_gym_pin) }
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_selected_gym_pin)
@@ -79,6 +78,7 @@ class GymMapDialog : DialogFragment() {
             val marker = Marker(map).apply {
                 position = GeoPoint(gym.latitude, gym.longitude)
                 title = gym.name
+                styleSavedGymPin(map)
                 snippet = gym.location
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 setOnMarkerClickListener { tapped, _ ->
@@ -90,7 +90,7 @@ class GymMapDialog : DialogFragment() {
             map.overlays.add(marker)
         }
 
-        val start = (state ?: requireArguments()).getCoordinates()
+        val start = state?.getCoordinates() ?: requireArguments().getCoordinates()
         ui.confirmLocation.isEnabled = start != null
         start?.let { select(GeoPoint(it.latitude, it.longitude)) }
         val center = presenter.initialCenter(gyms)
@@ -133,11 +133,9 @@ class GymMapDialog : DialogFragment() {
         const val RESULT = "gym_map_result"
         private const val TITLE = "gym_title"
 
-        fun newInstance(point: Coordinates?, title: String) = GymMapDialog().apply {
-            arguments = Bundle().apply {
-                point?.let { putCoordinates(it) }
-                putString(TITLE, title)
-            }
+        fun argumentsFor(point: Coordinates?, title: String) = Bundle().apply {
+            point?.let { putCoordinates(it) }
+            putString(TITLE, title)
         }
     }
 }
