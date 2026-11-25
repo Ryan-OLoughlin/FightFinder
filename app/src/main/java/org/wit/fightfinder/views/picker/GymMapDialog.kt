@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import org.osmdroid.events.MapEventsReceiver
 import org.wit.fightfinder.views.map.configureGymMap
+import org.wit.fightfinder.views.map.styleSavedGymPin
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
@@ -77,6 +78,7 @@ class GymMapDialog : DialogFragment() {
             val marker = Marker(map).apply {
                 position = GeoPoint(gym.latitude, gym.longitude)
                 title = gym.name
+                styleSavedGymPin(map)
                 snippet = gym.location
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 setOnMarkerClickListener { tapped, _ ->

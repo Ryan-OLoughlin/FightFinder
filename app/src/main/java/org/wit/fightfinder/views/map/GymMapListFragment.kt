@@ -56,6 +56,7 @@ class GymMapListFragment : Fragment(R.layout.fragment_gym_map_list), GymMapListP
             val marker = Marker(map).apply {
                 position = GeoPoint(point.latitude, point.longitude)
                 title = gymsAtPin.first().name
+                styleSavedGymPin(map)
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 setOnMarkerClickListener { _, _ ->
                     presenter.onPinSelected(gymsAtPin)
