@@ -1,171 +1,102 @@
 package org.wit.fightfinder.views.list
 
-import org.wit.fightfinder.FightFinderApplication
-import org.wit.fightfinder.activities.gymStore
-import org.wit.fightfinder.views.auth.openAuth
-import org.wit.fightfinder.views.details.GymDetailsView
-import org.wit.fightfinder.views.form.GymFormDialog
-import org.wit.fightfinder.views.map.GymMapListActivity
-
 import android.os.Bundle
-import android.content.Intent
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
-import android.view.Menu
-import android.view.MenuItem
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
+import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.navOptions
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
+import androidx.navigation.ui.setupActionBarWithNavController
+import org.wit.fightfinder.FightFinderApplication
 import org.wit.fightfinder.R
-import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.ActivityMainBinding
-import org.wit.fightfinder.models.Gym
+import org.wit.fightfinder.views.auth.openAuth
 import timber.log.Timber
 
-class MainActivity : AppCompatActivity(), GymListPresenter.View {
-
-    private lateinit var binding: ActivityMainBinding
-    private val presenter by lazy { GymListPresenter(gymStore, this) }
-    private lateinit var gymAdapter: GymAdapter
-    private var canDeleteAll = false
+class MainActivity : AppCompatActivity() {
+    private val app get() = application as FightFinderApplication
+    private lateinit var navController: NavController
+    private lateinit var appBar: AppBarConfiguration
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val signedIn = (application as FightFinderApplication).signedInUid != null
+        val signedIn = app.signedInUid != null
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState.takeIf { signedIn })
         if (!signedIn) {
             openAuth()
             return
         }
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        if (Timber.treeCount() == 0) Timber.plant(Timber.DebugTree())
+
+        val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbarMain)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val keyboard = insets.getInsets(WindowInsetsCompat.Type.ime())
+            view.updatePadding(left = bars.left, top = bars.top, right = bars.right, bottom = maxOf(bars.bottom, keyboard.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
 
-        gymAdapter = GymAdapter(
-            onViewGym = { gym -> GymDetailsView(this, gym.id).show() },
-            onEditGym = { gym -> showGymForm(gym.id) },
-            onDeleteGym = { gym -> presenter.onDeleteRequested(gym.id) }
-        )
-        binding.gymRecyclerView.layoutManager = LinearLayoutManager(this)
-        binding.gymRecyclerView.adapter = gymAdapter
-        binding.searchGyms.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+        val navHost = supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
+        navController = navHost.navController
+        val drawerDestinations = setOf(R.id.gymList, R.id.gymMap)
+        appBar = AppBarConfiguration(drawerDestinations, binding.drawer)
+        setupActionBarWithNavController(navController, appBar)
 
-            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
-                presenter.onSearchChanged(text?.toString().orEmpty())
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val topLevel = destination.id in drawerDestinations
+            binding.drawer.setDrawerLockMode(
+                if (topLevel) DrawerLayout.LOCK_MODE_UNLOCKED else DrawerLayout.LOCK_MODE_LOCKED_CLOSED
+            )
+            if (topLevel) binding.navigation.setCheckedItem(destination.id)
+        }
+        binding.navigation.setNavigationItemSelectedListener { item ->
+            binding.drawer.closeDrawer(GravityCompat.START)
+            when (item.itemId) {
+                R.id.action_sign_out -> {
+                    app.signOut()
+                    openAuth()
+                }
+                R.id.gymList -> navController.popBackStack(R.id.gymList, inclusive = false)
+                R.id.gymMap -> if (navController.currentDestination?.id != R.id.gymMap) {
+                    navController.navigate(R.id.gymMap, null, navOptions {
+                        launchSingleTop = true
+                        anim {
+                            enter = R.anim.screen_enter
+                            exit = R.anim.screen_exit
+                            popEnter = R.anim.screen_pop_enter
+                            popExit = R.anim.screen_pop_exit
+                        }
+                    })
+                }
             }
+            true
+        }
 
-            override fun afterTextChanged(text: Editable?) = Unit
+        val closeDrawerOnBack = object : OnBackPressedCallback(binding.drawer.isDrawerVisible(GravityCompat.START)) {
+            override fun handleOnBackPressed() {
+                binding.drawer.closeDrawer(GravityCompat.START)
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, closeDrawerOnBack)
+        binding.drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                closeDrawerOnBack.isEnabled = slideOffset > 0f
+            }
         })
-        loadGyms()
-
-        if (Timber.treeCount() == 0) {
-            Timber.plant(Timber.DebugTree())
-        }
-        Timber.i("FightFinder started")
     }
 
-    private fun loadGyms() {
-        lifecycleScope.launch { presenter.loadAndObserve() }
-    }
-
-    override fun showLoading() {
-        binding.btnAddGym.isEnabled = false
-        binding.searchGyms.isEnabled = false
-        binding.emptyState.visibility = View.GONE
-    }
-
-    override fun showLoadError() {
-        binding.emptyState.setText(R.string.gym_load_failed)
-        binding.emptyState.visibility = View.VISIBLE
-        binding.btnAddGym.setText(R.string.gym_retry)
-        binding.btnAddGym.setOnClickListener { loadGyms() }
-        binding.btnAddGym.isEnabled = true
-    }
-
-    override fun showGyms(gyms: List<Gym>, emptyState: GymListPresenter.EmptyState?, canDeleteAll: Boolean) {
-        binding.btnAddGym.setText(R.string.button_add_gym)
-        binding.btnAddGym.setOnClickListener { showGymForm(null) }
-        binding.btnAddGym.isEnabled = true
-        binding.searchGyms.isEnabled = true
-        gymAdapter.setGyms(gyms)
-        if (this.canDeleteAll != canDeleteAll) {
-            this.canDeleteAll = canDeleteAll
-            invalidateOptionsMenu()
-        }
-        val message = when (emptyState) {
-            GymListPresenter.EmptyState.EMPTY_LIST -> R.string.gym_list_empty
-            GymListPresenter.EmptyState.NO_RESULTS -> R.string.gym_search_no_results
-            null -> null
-        }
-        binding.emptyState.visibility = if (message == null) View.GONE else View.VISIBLE
-        message?.let(binding.emptyState::setText)
-    }
-
-    override fun clearSearch() {
-        binding.searchGyms.text?.clear()
-    }
-
-    override fun showDeleteError() {
-        Toast.makeText(this, R.string.gym_save_failed, Toast.LENGTH_LONG).show()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.action_delete_all_gyms)?.isEnabled = canDeleteAll
-        return super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_sign_out -> {
-                (application as FightFinderApplication).signOut()
-                openAuth()
-                true
-            }
-            R.id.action_all_gyms_map -> {
-                startActivity(Intent(this, GymMapListActivity::class.java))
-                true
-            }
-            R.id.action_delete_all_gyms -> {
-                presenter.onDeleteAllRequested()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun showGymForm(gymId: Long?) {
-        GymFormDialog.newInstance(gymId).show(supportFragmentManager, "gym_form")
-    }
-
-    override fun confirmDelete(gym: Gym) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.dialog_delete_gym_title)
-            .setMessage(getString(R.string.dialog_delete_gym_message, gym.name))
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.button_delete_gym) { _, _ ->
-                lifecycleScope.launch { presenter.onDeleteConfirmed(gym.id) }
-            }
-            .show()
-    }
-
-    override fun confirmDeleteAll() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.dialog_delete_all_gyms_title)
-            .setMessage(R.string.dialog_delete_all_gyms_message)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.dialog_delete_all_gyms_confirm) { _, _ ->
-                lifecycleScope.launch { presenter.onDeleteAllConfirmed() }
-            }
-            .show()
-    }
+    override fun onSupportNavigateUp(): Boolean =
+        navController.navigateUp(appBar) || super.onSupportNavigateUp()
 }

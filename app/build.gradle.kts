@@ -52,5 +52,8 @@ dependencies {
     // Firebase Auth 25 requires Kotlin metadata newer than our Android plugin supports.
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-auth")
+    implementation("androidx.navigation:navigation-fragment:2.9.7")
+    implementation("androidx.navigation:navigation-ui:2.9.7")
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")
     testImplementation(libs.junit)
 }

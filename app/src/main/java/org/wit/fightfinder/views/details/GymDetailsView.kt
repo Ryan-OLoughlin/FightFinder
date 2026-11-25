@@ -9,7 +9,12 @@ import android.widget.NumberPicker
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import java.io.IOException
+import org.wit.fightfinder.databinding.FragmentGymDetailsBinding
 import org.wit.fightfinder.R
 import org.wit.fightfinder.models.Gym
 import org.wit.fightfinder.models.AttendanceType
@@ -19,39 +24,58 @@ import java.util.Locale
 import org.wit.fightfinder.activities.gymStore
 import org.wit.fightfinder.activities.saveGymChange
 
-internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Long) {
-    private val presenter = GymDetailsPresenter(activity.gymStore, gymId)
+class GymDetailsView : Fragment(R.layout.fragment_gym_details) {
+    private val presenter by lazy {
+        GymDetailsPresenter(requireContext().gymStore, requireArguments().getLong("gym_id"))
+    }
+    private var binding: FragmentGymDetailsBinding? = null
 
-    fun show() {
-        presenter.currentGym()?.let(::renderGym)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val ui = FragmentGymDetailsBinding.bind(view)
+        binding = ui
+        ui.addReview.setOnClickListener { showAddReviewDialog() }
+        ui.recordAttendance.setOnClickListener { showAttendanceTypeDialog() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val gym = presenter.currentGym()
+                if (gym == null) ui.details.setText(R.string.gym_missing) else renderGym(gym)
+            } catch (_: IOException) {
+                ui.details.setText(R.string.gym_load_failed)
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        binding = null
+        super.onDestroyView()
     }
 
     private fun renderGym(gym: Gym) {
-        val notProvided = activity.getString(R.string.gym_not_provided)
+        val notProvided = getString(R.string.gym_not_provided)
         val profileDetails = listOf(
-            activity.getString(R.string.gym_detail_location, gym.location.ifBlank { notProvided }),
-            activity.getString(R.string.gym_pin_details, gym.latitude, gym.longitude),
-            gym.addedFrom?.let { activity.getString(R.string.added_from_details, it.latitude, it.longitude) }
-                ?: activity.getString(R.string.added_from_missing),
-            activity.getString(R.string.gym_detail_price, gym.price.ifBlank { notProvided }),
-            activity.getString(R.string.gym_detail_opening_hours, gym.openingHours.ifBlank { notProvided }),
-            activity.getString(R.string.gym_detail_facilities, gym.facilities.ifBlank { notProvided }),
-            activity.getString(R.string.gym_detail_classes, gym.classes.ifBlank { notProvided })
+            getString(R.string.gym_detail_location, gym.location.ifBlank { notProvided }),
+            getString(R.string.gym_pin_details, gym.latitude, gym.longitude),
+            gym.addedFrom?.let { getString(R.string.added_from_details, it.latitude, it.longitude) }
+                ?: getString(R.string.added_from_missing),
+            getString(R.string.gym_detail_price, gym.price.ifBlank { notProvided }),
+            getString(R.string.gym_detail_opening_hours, gym.openingHours.ifBlank { notProvided }),
+            getString(R.string.gym_detail_facilities, gym.facilities.ifBlank { notProvided }),
+            getString(R.string.gym_detail_classes, gym.classes.ifBlank { notProvided })
         ).joinToString("\n\n")
         val reviewDetails = if (gym.reviews.isEmpty()) {
-            activity.getString(R.string.gym_reviews_empty)
+            getString(R.string.gym_reviews_empty)
         } else {
             gym.reviews.joinToString("\n\n") { review ->
-                activity.getString(R.string.gym_review_line, review.rating, review.comment)
+                getString(R.string.gym_review_line, review.rating, review.comment)
             }
         }
         val attendanceDetails = if (gym.attendance.isEmpty()) {
-            activity.getString(R.string.gym_attendance_empty)
+            getString(R.string.gym_attendance_empty)
         } else {
             gym.attendance.joinToString("\n") { attendance ->
                 when (attendance.type) {
-                    AttendanceType.VISIT -> activity.getString(R.string.gym_attendance_item_visit, attendance.date)
-                    AttendanceType.CLASS -> activity.getString(
+                    AttendanceType.VISIT -> getString(R.string.gym_attendance_item_visit, attendance.date)
+                    AttendanceType.CLASS -> getString(
                         R.string.gym_attendance_item_class,
                         attendance.className,
                         attendance.date
@@ -59,22 +83,22 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
                 }
             }
         }
-        val details = "$profileDetails\n\n${activity.getString(R.string.gym_reviews_title)}\n\n$reviewDetails" +
-            "\n\n${activity.getString(R.string.gym_attendance_title)}\n\n$attendanceDetails"
+        val details = "$profileDetails\n\n${getString(R.string.gym_reviews_title)}\n\n$reviewDetails" +
+            "\n\n${getString(R.string.gym_attendance_title)}\n\n$attendanceDetails"
 
-        AlertDialog.Builder(activity)
-            .setTitle(gym.name)
-            .setMessage(details)
-            .setNeutralButton(R.string.gym_attendance_record_action) { _, _ -> showAttendanceTypeDialog() }
-            .setNegativeButton(R.string.button_add_review) { _, _ -> showAddReviewDialog() }
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        binding?.apply {
+            name.text = gym.name
+            this.details.text = details
+            addReview.isEnabled = true
+            recordAttendance.isEnabled = true
+        }
     }
 
     private fun showAttendanceTypeDialog() {
+        val activity = requireActivity()
         val choices = arrayOf(
-            activity.getString(R.string.gym_attendance_visit),
-            activity.getString(R.string.gym_attendance_class)
+            getString(R.string.gym_attendance_visit),
+            getString(R.string.gym_attendance_class)
         )
         AlertDialog.Builder(activity)
             .setTitle(R.string.gym_attendance_record_action)
@@ -87,20 +111,21 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
     }
 
     private fun showAttendanceDetailsDialog(type: AttendanceType) {
+        val activity = requireActivity()
         val selectedDate = Calendar.getInstance()
         val classNameInput = EditText(activity).apply {
-            hint = activity.getString(R.string.gym_attendance_class_hint)
+            hint = getString(R.string.gym_attendance_class_hint)
             visibility = if (type == AttendanceType.CLASS) View.VISIBLE else View.GONE
             maxLines = 1
         }
         val dateButton = Button(activity).apply {
-            text = activity.getString(R.string.gym_attendance_date_label, formatDate(selectedDate))
+            text = getString(R.string.gym_attendance_date_label, formatDate(selectedDate))
             setOnClickListener {
                 DatePickerDialog(
                     activity,
                     { _, year, month, day ->
                         selectedDate.set(year, month, day)
-                        text = activity.getString(R.string.gym_attendance_date_label, formatDate(selectedDate))
+                        text = getString(R.string.gym_attendance_date_label, formatDate(selectedDate))
                     },
                     selectedDate.get(Calendar.YEAR),
                     selectedDate.get(Calendar.MONTH),
@@ -110,7 +135,7 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
         }
         val form = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            val padding = (24 * activity.resources.displayMetrics.density).toInt()
+            val padding = (24 * resources.displayMetrics.density).toInt()
             setPadding(padding, 8, padding, 0)
             addView(dateButton)
             if (type == AttendanceType.CLASS) addView(classNameInput)
@@ -127,7 +152,7 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val className = classNameInput.text.toString()
                 val date = formatDate(selectedDate)
-                activity.saveGymChange(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
+                viewLifecycleOwner.saveGymChange(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
                     val updatedGym = presenter.recordAttendance(type, date, className)
                     if (updatedGym == null) {
                         Toast.makeText(activity, R.string.gym_attendance_class_required, Toast.LENGTH_SHORT).show()
@@ -145,8 +170,9 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
         SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(calendar.time)
 
     private fun showAddReviewDialog() {
-        val horizontalPadding = (24 * activity.resources.displayMetrics.density).toInt()
-        val topPadding = (8 * activity.resources.displayMetrics.density).toInt()
+        val activity = requireActivity()
+        val horizontalPadding = (24 * resources.displayMetrics.density).toInt()
+        val topPadding = (8 * resources.displayMetrics.density).toInt()
         val form = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(horizontalPadding, topPadding, horizontalPadding, 0)
@@ -161,7 +187,7 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
             wrapSelectorWheel = false
         }
         val commentInput = EditText(activity).apply {
-            hint = activity.getString(R.string.gym_review_comment_hint)
+            hint = getString(R.string.gym_review_comment_hint)
             minLines = 2
             gravity = android.view.Gravity.TOP
         }
@@ -180,7 +206,7 @@ internal class GymDetailsView(private val activity: AppCompatActivity, gymId: Lo
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val comment = commentInput.text.toString()
                 val rating = ratingPicker.value
-                activity.saveGymChange(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
+                viewLifecycleOwner.saveGymChange(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE)) {
                     val updatedGym = presenter.addReview(rating, comment)
                     if (updatedGym == null) {
                         Toast.makeText(activity, R.string.gym_review_required, Toast.LENGTH_SHORT).show()

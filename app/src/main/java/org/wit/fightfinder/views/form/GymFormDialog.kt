@@ -6,6 +6,7 @@ import org.wit.fightfinder.activities.saveGymChange
 import org.wit.fightfinder.views.picker.GymMapDialog
 import org.wit.fightfinder.views.picker.getCoordinates
 import org.wit.fightfinder.views.picker.putCoordinates
+import androidx.navigation.fragment.findNavController
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
@@ -40,7 +41,7 @@ class GymFormDialog : DialogFragment() {
     private var binding: DialogGymFormBinding? = null
 
     private val presenter by lazy {
-        val gymId = arguments?.takeIf { it.containsKey(GYM_ID) }?.getLong(GYM_ID)
+        val gymId = arguments?.getLong(GYM_ID, -1L)?.takeIf { it > 0 }
         GymFormPresenter(requireContext().gymStore, gymId)
     }
     private var requestedPermission = false
@@ -72,15 +73,18 @@ class GymFormDialog : DialogFragment() {
         locationFinished = savedInstanceState?.getBoolean(LOCATION_FINISHED) == true
         form.retryLocation.setOnClickListener { retryLocation() }
         form.locationStatus.visibility = if (presenter.editing) View.GONE else View.VISIBLE
-        childFragmentManager.setFragmentResultListener(GymMapDialog.RESULT, this) { _, result ->
+        parentFragmentManager.setFragmentResultListener(GymMapDialog.RESULT, this) { _, result ->
             result.getCoordinates()?.let { showCoordinates(form, it) }
         }
         form.chooseLocation.setOnClickListener {
+            val navigation = findNavController()
+            if (navigation.currentDestination?.id != R.id.gymForm) return@setOnClickListener
             val lat = parseCoordinate(form.inputLatitude)
             val lon = parseCoordinate(form.inputLongitude)
             val start = presenter.pin(lat, lon)
-            GymMapDialog.newInstance(start, form.inputGymName.text.toString())
-                .show(childFragmentManager, "gym_map")
+            navigation.navigate(
+                R.id.openGymPicker, GymMapDialog.argumentsFor(start, form.inputGymName.text.toString())
+            )
         }
         val gym = presenter.existingGym()
 
@@ -252,8 +256,5 @@ class GymFormDialog : DialogFragment() {
         private const val ADDED_FROM = "added_from"
         private const val IMAGE_URI = "image_uri"
 
-        fun newInstance(id: Long?) = GymFormDialog().apply {
-            arguments = Bundle().apply { if (id != null) putLong(GYM_ID, id) }
-        }
     }
 }

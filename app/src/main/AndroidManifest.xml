@@ -14,7 +14,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FightFinder">
-        <activity android:name=".views.map.GymMapListActivity" android:exported="false" />
         <activity android:name=".views.list.MainActivity" android:exported="false" />
         <activity
             android:name=".views.auth.AuthActivity"
