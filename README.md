@@ -12,6 +12,13 @@ Open in Android Studio, or run the Gradle wrapper from the project root:
 
 ## Firebase configuration
 
-Register the Android app `org.wit.fightfinder` in your Firebase project and enable Email/Password in Authentication → Sign-in method. Download the Android configuration as `app/google-services.json` and sync Gradle. The project can build without this configuration, and the sign-in screen shows a setup message in that case.
+FightFinder includes the Android client configuration for `fightfinderrelease` in `app/google-services.json`. A build from this repository connects to that project for email sign-in and gym sync.
 
-Each account uses its own gym data on the device.
+To use your own Firebase project, register `org.wit.fightfinder`, enable Email/Password in **Authentication > Sign-in method**, and replace `app/google-services.json` with the configuration from your project.
+
+
+## Cloud Firestore
+
+If you use your own Firebase project, create a default Cloud Firestore database. In the Firebase console, open **Firestore Database > Rules** and publish the rules from `firestore.rules`.
+
+After sign-in, the app syncs gym records under `users/{uid}/gyms` and keeps its private JSON file for offline use. Existing gyms in the signed-in account's JSON file are uploaded when the connection is available. Gym photos stay on the device that selected them.

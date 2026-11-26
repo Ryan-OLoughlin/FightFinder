@@ -92,4 +92,12 @@
     <string name="nav_gyms">Gyms</string>
     <string name="gym_details_title">Gym details</string>
     <string name="gym_missing">This gym is no longer available.</string>
+    <string name="gym_sync_pending">Waiting to sync gym records…</string>
+    <string name="gym_sync_complete">Gym records synced</string>
+    <string name="gym_sync_unavailable">Sync unavailable. Your gyms are saved on this device.</string>
+    <string name="gym_sync_denied">Firestore denied access. Check the published rules in your Firebase project.</string>
+    <string name="gym_sync_sign_in">Firestore needs a fresh sign-in. Sign out and sign back in.</string>
+    <string name="gym_sync_database_setup">Firestore isn’t ready. Check that the default database exists in your Firebase project.</string>
+    <string name="gym_sync_invalid_record">Firestore couldn’t sync a gym record. Your local copy is saved.</string>
+    <string name="gym_sync_quota">Firestore’s usage limit was reached. Your gyms are saved on this device.</string>
 </resources>

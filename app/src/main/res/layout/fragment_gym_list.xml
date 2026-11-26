@@ -33,7 +33,7 @@
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchGymLayout" />
+        app:layout_constraintTop_toBottomOf="@id/gymSyncStatus" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/searchGymLayout"
@@ -56,6 +56,19 @@
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <TextView
+        android:id="@+id/gymSyncStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:paddingVertical="4dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchGymLayout" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/gymRecyclerView"
         android:layout_width="0dp"
@@ -68,7 +81,7 @@
         app:layout_constraintBottom_toTopOf="@id/btnAddGym"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchGymLayout" />
+        app:layout_constraintTop_toBottomOf="@id/gymSyncStatus" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAddGym"

@@ -13,7 +13,8 @@ data class Gym(
     val classes: String = "",
     val reviews: List<GymReview> = emptyList(),
     val attendance: List<GymAttendance> = emptyList(),
-    val addedFrom: Coordinates? = null
+    val addedFrom: Coordinates? = null,
+    val cloudId: String? = null
 ) {
     init {
         require(name.isNotBlank())
