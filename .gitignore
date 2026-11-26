@@ -4,4 +4,3 @@ build/
 **/build/
 local.properties
 *.iml
-/app/google-services.json
