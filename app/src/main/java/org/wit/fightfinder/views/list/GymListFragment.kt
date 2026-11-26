@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.MenuProvider
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +23,7 @@ import org.wit.fightfinder.activities.gymStore
 import org.wit.fightfinder.adapters.GymAdapter
 import org.wit.fightfinder.databinding.FragmentGymListBinding
 import org.wit.fightfinder.models.Gym
+import org.wit.fightfinder.models.GymListStore.SyncStatus
 
 class GymListFragment : Fragment(R.layout.fragment_gym_list), GymListPresenter.View {
 
@@ -55,6 +57,24 @@ class GymListFragment : Fragment(R.layout.fragment_gym_list), GymListPresenter.V
             override fun afterTextChanged(text: Editable?) = Unit
         })
         loadGyms()
+        val store = requireContext().gymStore
+        viewLifecycleOwner.lifecycleScope.launch {
+            store.syncStatus.collect { status ->
+                val message = when (status) {
+                    SyncStatus.DISABLED -> null
+                    SyncStatus.PENDING -> R.string.gym_sync_pending
+                    SyncStatus.SYNCED -> R.string.gym_sync_complete
+                    SyncStatus.UNAVAILABLE -> R.string.gym_sync_unavailable
+                    SyncStatus.ACCESS_DENIED -> R.string.gym_sync_denied
+                    SyncStatus.SIGN_IN_REQUIRED -> R.string.gym_sync_sign_in
+                    SyncStatus.DATABASE_SETUP -> R.string.gym_sync_database_setup
+                    SyncStatus.INVALID_RECORD -> R.string.gym_sync_invalid_record
+                    SyncStatus.QUOTA_EXCEEDED -> R.string.gym_sync_quota
+                }
+                binding.gymSyncStatus.isVisible = message != null
+                message?.let(binding.gymSyncStatus::setText)
+            }
+        }
 
         requireActivity().addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
